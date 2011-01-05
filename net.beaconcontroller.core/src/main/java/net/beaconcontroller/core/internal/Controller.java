@@ -452,8 +452,8 @@ public class Controller implements IBeaconProvider, SelectListener {
                 public void run() {
                     try {
                         sl.doLoop();
-                    } catch (IOException e) {
-                        e.printStackTrace();
+                    } catch (Exception e) {
+                        log.error("Exception during worker loop, terminating thread", e);
                     }
                 }}
             );
@@ -464,8 +464,8 @@ public class Controller implements IBeaconProvider, SelectListener {
                 // Start the listen loop
                 try {
                     listenSelectLoop.doLoop();
-                } catch (IOException e) {
-                    e.printStackTrace();
+                } catch (Exception e) {
+                    log.error("Exception during accept loop, terminating thread", e);
                 }
             }}
         );
