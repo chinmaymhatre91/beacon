@@ -103,9 +103,10 @@
 
         //Connects all of the columns together for drag and drop
         $(tab).find(".column").sortable({
-          connectWith: '.column'
+          connectWith: '.column',
+          handle: '.section-header'
         });
-        $(tab).find(".column").disableSelection();
+        $(tab).find(".section-header").disableSelection();
 
         //Add necessary classes for visual decoration and +/- signs
         $(tab).find(".section").addClass("ui-widget ui-widget-content ui-helper-clearfix ui-corner-all")
