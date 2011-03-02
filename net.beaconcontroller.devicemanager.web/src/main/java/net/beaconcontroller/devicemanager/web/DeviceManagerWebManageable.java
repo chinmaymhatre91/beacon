@@ -15,6 +15,7 @@ import net.beaconcontroller.web.view.layout.TwoColumnLayout;
 import net.beaconcontroller.web.view.section.TableSection;
 
 import org.openflow.util.HexString;
+import org.openflow.util.U16;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -79,7 +80,7 @@ public class DeviceManagerWebManageable implements IWebManageable {
             }
             row.add(sb.toString());
             row.add(HexString.toHexString(device.getSw().getId()));
-            row.add(device.getSwPort().toString());
+            row.add(((Integer)U16.f(device.getSwPort())).toString());
             cells.add(row);
         }
         layout.addSection(new TableSection("Devices", columnNames, cells), TwoColumnLayout.COLUMN1);
