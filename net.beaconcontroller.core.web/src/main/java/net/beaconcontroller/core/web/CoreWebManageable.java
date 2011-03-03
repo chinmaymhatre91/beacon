@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -20,6 +21,8 @@ import net.beaconcontroller.web.IWebManageable;
 import net.beaconcontroller.web.view.BeaconJsonView;
 import net.beaconcontroller.web.view.BeaconViewResolver;
 import net.beaconcontroller.web.view.Tab;
+import net.beaconcontroller.web.view.json.DataTableJsonView;
+import net.beaconcontroller.web.view.json.OFFlowStatisticsReplyDataTableFormatCallback;
 import net.beaconcontroller.web.view.layout.Layout;
 import net.beaconcontroller.web.view.layout.OneColumnLayout;
 import net.beaconcontroller.web.view.layout.TwoColumnLayout;
@@ -31,6 +34,7 @@ import org.openflow.protocol.OFMatch;
 import org.openflow.protocol.OFPort;
 import org.openflow.protocol.OFStatisticsRequest;
 import org.openflow.protocol.OFType;
+import org.openflow.protocol.statistics.OFFlowStatisticsReply;
 import org.openflow.protocol.statistics.OFFlowStatisticsRequest;
 import org.openflow.protocol.statistics.OFStatistics;
 import org.openflow.protocol.statistics.OFStatisticsType;
@@ -243,12 +247,27 @@ public class CoreWebManageable implements BundleContextAware, IWebManageable {
         return view;
     }
 
+    @RequestMapping("/switch/{switchId}/flows/dataTable")
+    public View getSwitchFlowsDataTable(@PathVariable String switchId, Map<String,Object> model) {
+        List<OFFlowStatisticsReply> data = new ArrayList<OFFlowStatisticsReply>();
+        List<OFStatistics> stats = getSwitchFlows(switchId);
+        if (stats != null) {
+            // Ugly cast.. sigh
+            data.addAll((Collection<? extends OFFlowStatisticsReply>) stats);
+        }
+        DataTableJsonView<OFFlowStatisticsReply> view = new DataTableJsonView<OFFlowStatisticsReply>(
+                data, new OFFlowStatisticsReplyDataTableFormatCallback());
+        return view;
+    }
+
     @RequestMapping("/switch/{switchId}/flows")
     public String getSwitchFlows(@PathVariable String switchId, Map<String,Object> model) {
         OneColumnLayout layout = new OneColumnLayout();
         model.put("title", "Flows for switch: " + switchId);
         model.put("layout", layout);
         model.put("flows", getSwitchFlows(switchId));
+        model.put("switchId", switchId);
+        model.put("switchIdEsc", switchId.replaceAll(":", ""));
         layout.addSection(new JspSection("flows.jsp", model), null);
         return BeaconViewResolver.SIMPLE_VIEW;
     }

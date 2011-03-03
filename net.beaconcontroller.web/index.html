@@ -12,6 +12,7 @@
     <script type="text/javascript" src="js/jquery.xclone.js"></script>
     <script type="text/javascript" src="js/jquery.dataTables.min.js"></script>
     <script type="text/javascript" src="js/jquery.form.js"></script>
+    <script type="text/javascript" src="js/beacon.js"></script>
 
     <style type="text/css">
       /* set base body font size so that the relative font sizing below works */
@@ -55,6 +56,8 @@
       .css_right {float:right;}
       .css_left {float:left;}
       .rowHover {background-color: #ededed;}
+      .DataTables_sort_wrapper { position: relative; padding-right: 20px;}
+      .DataTables_sort_wrapper span { float: right; position: absolute; right: 0px; top: 0px;}
     </style>
 
     <script type="text/javascript">
@@ -84,6 +87,48 @@
       };
 
       /**
+      * Extension to datatables to allow it to reload the data being displayed
+      **/
+      $.fn.dataTableExt.oApi.fnReloadAjax = function ( oSettings, sNewSource, fnCallback, bStandingRedraw )
+      {
+          if ( typeof sNewSource != 'undefined' && sNewSource != null )
+          {
+              oSettings.sAjaxSource = sNewSource;
+          }
+          this.oApi._fnProcessingDisplay( oSettings, true );
+          var that = this;
+          var iStart = oSettings._iDisplayStart;
+          
+          oSettings.fnServerData( oSettings.sAjaxSource, null, function(json) {
+              /* Clear the old information from the table */
+              that.oApi._fnClearTable( oSettings );
+              
+              /* Got the data - add it to the table */
+              for ( var i=0 ; i<json.aaData.length ; i++ )
+              {
+                  that.oApi._fnAddData( oSettings, json.aaData[i] );
+              }
+              
+              oSettings.aiDisplay = oSettings.aiDisplayMaster.slice();
+              that.fnDraw( that );
+              
+              if ( typeof bStandingRedraw != 'undefined' && bStandingRedraw === true )
+              {
+                  oSettings._iDisplayStart = iStart;
+                  that.fnDraw( false );
+              }
+              
+              that.oApi._fnProcessingDisplay( oSettings, false );
+              
+              /* Callback user function - for event handlers etc */
+              if ( typeof fnCallback == 'function' && fnCallback != null )
+              {
+                  fnCallback( oSettings );
+              }
+          } );
+      }
+
+      /**
        * Primary method where client-side templating is applied.
        *
        * Processing step that will go through the html used in a freshly loaded application's tab and decorate it
@@ -94,7 +139,6 @@
        * tab should be a dom element representing the contents of a single tab
        */
       function decorateTab(tab) {
-        //console.log("decorating tab...");
         //Check to see if the plugins we need have loaded..
         if(!jQuery.fn.dataTable) {
           //console.log("not all js/css loaded yet... stalling decorateTab until all libraries have loaded");
@@ -230,6 +274,67 @@
             return false; //Return false from the click method to stop any native browser processing
           }); // close the click() inner function
         }); //close the each() loop
+
+        // Wrap a new tab link
+        $(tab).find(".beaconNewTab").each(function() {
+          $(this).click(function() {
+            $tabs = $("#center");
+
+            // add the new tab
+            var oldTemplate = $tabs.tabs( "option", "tabTemplate");
+            // use a custom template with an x to close the tab
+            $tabs.tabs( "option", "tabTemplate", '<li><a href="#{href}">#{label}</a> <span class="ui-icon ui-icon-close">Remove Tab</span></li>');
+            var t = $tabs.tabs('add', $(this).attr("href"), $(this).attr("name"));
+            $tabs.tabs( "option", "tabTemplate", oldTemplate);
+            // select it
+            var index = $tabs.tabs("length")-1;
+            $tabs.tabs("select", index);
+
+            // add the close handler
+            $('#center span.ui-icon-close').last().click(function() {
+              var index = $('li',$tabs).index($(this).parent());
+              $tabs.tabs('remove', index);
+            });
+            return false; //Return false from the click method to stop any native browser processing
+          }); // close the click() inner function
+        }); //close the each() loop
+
+        // New Flows
+        $(tab).find(".beaconNewFlowsTab").each(function() {
+            var switchRegex = /\/wm\/core\/switch\/([^\/]*)\/flows/g;
+            var regexResults = switchRegex.exec($(this).attr('href'));
+            var switchId = null;
+            if (regexResults != null && regexResults[1] != null) {
+                switchId = regexResults[1];
+            }
+            $(this).click(function() {
+              $tabs = $("#center");
+
+              // Do we already have flows from this switch in a tab?
+              if (switchId != null && $("."+switchId.replace(/:/g,"\\:")).size() > 0) {
+                  var index = findTabIndex($("."+switchId.replace(/:/g,"\\:"))[0]);
+                  $tabs.tabs("select", index);
+                  return false;
+              }
+
+              // add the new tab
+              var oldTemplate = $tabs.tabs( "option", "tabTemplate");
+              // use a custom template with an x to close the tab
+              $tabs.tabs( "option", "tabTemplate", '<li><a href="#{href}">#{label}</a> <span class="ui-icon ui-icon-close">Remove Tab</span></li>');
+              var t = $tabs.tabs('add', $(this).attr("href"), $(this).attr("name"));
+              $tabs.tabs( "option", "tabTemplate", oldTemplate);
+              // select it
+              var index = $tabs.tabs("length")-1;
+              $tabs.tabs("select", index);
+
+              // add the close handler
+              $('#center span.ui-icon-close').last().click(function() {
+                var index = $('li',$tabs).index($(this).parent());
+                $tabs.tabs('remove', index);
+              });
+              return false; //Return false from the click method to stop any native browser processing
+            }); // close the click() inner function
+          }); //close the each() loop
       } //end decorate Tabls
 
       $(document).ready(function () {
@@ -254,13 +359,14 @@
           //Hooks up the tab panel decoration code to run when tabs are loaded from remote
           load: function(event, ui) {
             try {
-              decorateTab(this);
+              decorateTab(ui.panel);
             }
             catch(err) {
               alert("error when processing tab: " + err);
             }
 
-          }
+          },
+          cache: true
         });
 
         pageLayout.sizeContent("east"); // resize pane-content-elements after creating tabs

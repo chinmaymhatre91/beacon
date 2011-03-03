@@ -19,12 +19,15 @@ import org.openflow.protocol.OFStatisticsRequest;
 import org.openflow.protocol.OFType;
 import org.openflow.protocol.statistics.OFStatistics;
 import org.openflow.util.HexString;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *
  * @author David Erickson (daviderickson@cs.stanford.edu)
  */
 public class OFSwitchImpl implements IOFSwitch {
+    protected static Logger log = LoggerFactory.getLogger(OFSwitchImpl.class);
     protected ConcurrentMap<Object, Object> attributes;
     protected IBeaconProvider beaconProvider;
     protected Date connectedSince;
