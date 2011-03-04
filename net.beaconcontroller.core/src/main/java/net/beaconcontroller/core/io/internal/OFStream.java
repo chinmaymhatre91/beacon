@@ -10,9 +10,11 @@ import java.util.List;
 
 import net.beaconcontroller.core.io.OFMessageSafeOutStream;
 
-import org.openflow.io.OFMessageAsyncStream;
+import org.openflow.example.SelectLoop;
 import org.openflow.protocol.OFMessage;
 import org.openflow.protocol.factory.OFMessageFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This class is a thread-safe implementation of OFMessageAsyncStream, but only
@@ -22,17 +24,24 @@ import org.openflow.protocol.factory.OFMessageFactory;
  *
  */
 public class OFStream extends OFMessageAsyncStream implements OFMessageSafeOutStream {
+    protected Logger log = LoggerFactory.getLogger(OFStream.class);
+
     protected SelectionKey key;
+    protected SelectLoop selectLoop;
+    protected boolean writeFailure = false;
 
     /**
      * @param sock
      * @param messageFactory
+     * @param key
+     * @param selectLoop
      * @throws IOException
      */
-    public OFStream(SocketChannel sock, OFMessageFactory messageFactory, SelectionKey key)
-            throws IOException {
+    public OFStream(SocketChannel sock, OFMessageFactory messageFactory,
+            SelectionKey key, SelectLoop selectLoop) throws IOException {
         super(sock, messageFactory);
         this.key = key;
+        this.selectLoop = selectLoop;
     }
 
     /**
@@ -42,6 +51,7 @@ public class OFStream extends OFMessageAsyncStream implements OFMessageSafeOutSt
     public void write(OFMessage m) throws IOException {
         synchronized (outBuf) {
             appendMessageToOutBuf(m);
+            flush();
         }
       }
 
@@ -54,6 +64,7 @@ public class OFStream extends OFMessageAsyncStream implements OFMessageSafeOutSt
             for (OFMessage m : l) {
                 appendMessageToOutBuf(m);
             }
+            flush();
         }
     }
 
@@ -65,8 +76,19 @@ public class OFStream extends OFMessageAsyncStream implements OFMessageSafeOutSt
     public void flush() throws IOException {
         synchronized (outBuf) {
             outBuf.flip(); // swap pointers; lim = pos; pos = 0;
-            sock.write(outBuf); // write data starting at pos up to lim
+            try {
+                sock.write(outBuf); // write data starting at pos up to lim
+            } catch (IOException e) {
+                // Unrecoverable exception, generally the remote switch disconnected
+                log.info("Detected remote switch hangup {}", sock);
+                this.writeFailure = true;
+                // TODO should we propogate this failure?
+            }
             outBuf.compact();
+            if (outBuf.position() > 0) {
+                // force our select loop to wakeup, queue the remaining write
+                selectLoop.wakeup();
+            }
         }
     }
 
@@ -77,5 +99,14 @@ public class OFStream extends OFMessageAsyncStream implements OFMessageSafeOutSt
         synchronized (outBuf) {
             return outBuf.position() > 0;
         }
+    }
+
+    /**
+     * Returns true if there has been a failure to write by the stream, indicating
+     * the remote end has been disconnected
+     * @return the writeFailure
+     */
+    public boolean getWriteFailure() {
+        return writeFailure;
     }
 }

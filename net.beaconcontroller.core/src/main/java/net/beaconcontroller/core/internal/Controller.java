@@ -81,6 +81,7 @@ public class Controller implements IBeaconProvider, SelectListener {
     protected volatile boolean shuttingDown = false;
     protected ConcurrentHashMap<Long, IOFSwitch> switches;
     protected Set<IOFSwitchListener> switchListeners;
+    protected boolean switchRequirementsTimer = true;
     protected List<SelectLoop> switchSelectLoops;
     protected Integer threadCount;
     protected BlockingQueue<Update> updates;
@@ -126,7 +127,7 @@ public class Controller implements IBeaconProvider, SelectListener {
 
         // register initially with no ops because we need the key to init the stream
         SelectionKey switchKey = sl.registerBlocking(sock, 0, sw);
-        OFStream stream = new OFStream(sock, factory, switchKey);
+        OFStream stream = new OFStream(sock, factory, switchKey, sl);
         sw.setInputStream(stream);
         sw.setOutputStream(stream);
         sw.setSocketChannel(sock);
@@ -143,6 +144,7 @@ public class Controller implements IBeaconProvider, SelectListener {
     protected void handleSwitchEvent(SelectionKey key, IOFSwitch sw) {
         OFMessageInStream in = sw.getInputStream();
         OFMessageOutStream out = sw.getOutputStream();
+        OFStream stream = (OFStream) in;
         try {
             /**
              * A key may not be valid here if it has been disconnected while
@@ -163,6 +165,11 @@ public class Controller implements IBeaconProvider, SelectListener {
 
             if (key.isWritable()) {
                 out.flush();
+            }
+
+            if (stream.getWriteFailure()) {
+                disconnectSwitch(key, sw);
+                return;
             }
 
             /**
@@ -204,6 +211,10 @@ public class Controller implements IBeaconProvider, SelectListener {
     protected void handleMessages(IOFSwitch sw, List<OFMessage> msgs)
             throws IOException {
         for (OFMessage m : msgs) {
+            // If we detect a write failure, break early so we can disconnect
+            if (((OFStream)sw.getInputStream()).getWriteFailure()) {
+                break;
+            }
             switch (m.getType()) {
                 case HELLO:
                     log.debug("HELLO from {}", sw);
@@ -221,7 +232,9 @@ public class Controller implements IBeaconProvider, SelectListener {
                     sw.getOutputStream().write(fm);
 
                     // Start required message timer
-                    startSwitchRequirementsTimer(sw);
+                    if (switchRequirementsTimer) {
+                        startSwitchRequirementsTimer(sw);
+                    }
                     break;
                 case ECHO_REQUEST:
                     OFMessageInStream in = sw.getInputStream();
@@ -615,5 +628,12 @@ public class Controller implements IBeaconProvider, SelectListener {
      */
     public void setThreadCount(Integer threadCount) {
         this.threadCount = threadCount;
+    }
+
+    /**
+     * @param switchRequirementsTimer the switchRequirementsTimer to set
+     */
+    public void setSwitchRequirementsTimer(boolean switchRequirementsTimer) {
+        this.switchRequirementsTimer = switchRequirementsTimer;
     }
 }
