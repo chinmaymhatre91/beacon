@@ -301,17 +301,18 @@
 
         // New Flows
         $(tab).find(".beaconNewFlowsTab").each(function() {
-            var switchRegex = /\/wm\/core\/switch\/([^\/]*)\/flows/g;
+            var switchRegex = new RegExp("\\/wm\\/core\\/switch\\/([^\\/]*)\\/flows", "g");
             var regexResults = switchRegex.exec($(this).attr('href'));
             var switchId = null;
-            if (regexResults != null && regexResults[1] != null) {
+            if (regexResults != null && regexResults.length > 1 && regexResults[1] != null) {
                 switchId = regexResults[1];
             }
             $(this).click(function() {
               $tabs = $("#center");
 
               // Do we already have flows from this switch in a tab?
-              if (switchId != null && $("."+switchId.replace(/:/g,"\\:")).size() > 0) {
+              var selector = "."+switchId.replace(/:/g,"\\:");
+              if (switchId != null && $(selector).size() > 0) {
                   var index = findTabIndex($("."+switchId.replace(/:/g,"\\:"))[0]);
                   $tabs.tabs("select", index);
                   return false;
@@ -328,9 +329,10 @@
               $tabs.tabs("select", index);
 
               // add the close handler
-              $('#center span.ui-icon-close').last().click(function() {
-                var index = $('li',$tabs).index($(this).parent());
-                $tabs.tabs('remove', index);
+              var closeButton = getTabCloseElement(index);
+              $(closeButton).click(function () {
+                  var index = findTabIndexByTab($(this));
+                  $tabs.tabs('remove', index);
               });
               return false; //Return false from the click method to stop any native browser processing
             }); // close the click() inner function

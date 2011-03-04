@@ -20,6 +20,17 @@ function findTabIndex(element) {
 }
 
 /**
+ * Returns the index for the clicked on tab if clicking on the close X for a tab
+ * @param element
+ * @returns
+ */
+function findTabIndexByTab(element) {
+    var nav = $('.ui-tabs-nav');
+    var index = $(nav).children().index($(element).parent());
+    return index;
+}
+
+/**
  * Returns the element that is clicked to close the tab
  * @param index
  * @returns
