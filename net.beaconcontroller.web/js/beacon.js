@@ -41,6 +41,28 @@ function getTabCloseElement(index) {
     return span;
 }
 
+/**
+ * Returns the index of the currently selected tab
+ */
+function getTabSelectedIndex() {
+    return $("#center").tabs("option", "selected");
+}
+
+/**
+ * Sets the index of the selected tab
+ * @param index
+ */
+function setTabsSelectedIndex(index) {
+    $("#center").tabs("option", "selected", index);
+}
+
+/**
+ * Returns the number of tabs available for selection
+ */
+function getTabsLength() {
+    return $("#center").tabs("length");
+}
+
 function DataTableWrapper(switchId, switchIdEsc) {
     var that = this;
     //$('#table-flows-new').addClass(switchId);
@@ -110,3 +132,28 @@ DataTableWrapper.prototype.stopAutoRefresh = function startAutoRefresh() {
     this.buttonAutoRefresh.click(function () { that.startAutoRefresh(); });
     this.timerId = null;
 }
+
+$(document).bind('keystrokes.OtherNameSpace', [
+       {
+           keys: ['j'],
+           proceedToMainCallback: false,
+           success: function(event) {
+               var index = getTabSelectedIndex();
+               --index;
+               if (index < 0)
+                   index = getTabsLength()-1;
+               setTabsSelectedIndex(index);
+           }
+       },
+       {
+           keys: ['k'],
+           proceedToMainCallback: false,
+           success: function(event) {
+           var index = getTabSelectedIndex();
+           ++index;
+           if (index >= getTabsLength())
+               index = 0;
+           setTabsSelectedIndex(index);
+           }
+       }
+   ], function(event){});
