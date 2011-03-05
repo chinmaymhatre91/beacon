@@ -40,12 +40,17 @@ public class OFMessageAsyncStream implements OFMessageInStream, OFMessageOutStre
 
     @Override
     public List<OFMessage> read() throws IOException {
+        return this.read(0);
+    }
+
+    @Override
+    public List<OFMessage> read(int limit) throws IOException {
         List<OFMessage> l;
         int read = sock.read(inBuf);
         if (read == -1)
             return null;
         inBuf.flip();
-        l = messageFactory.parseMessages(inBuf);
+        l = messageFactory.parseMessages(inBuf, limit);
         if (inBuf.hasRemaining())
             inBuf.compact();
         else
