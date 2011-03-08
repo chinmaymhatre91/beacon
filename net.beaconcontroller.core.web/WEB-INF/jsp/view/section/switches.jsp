@@ -23,6 +23,8 @@
             <td><fmt:formatDate value="${sw.connectedSince}" pattern="MM/dd HH:mm:ss"/></td>
             <td>
               <a href="<c:url value="/wm/core/switch/${hexId}/flows"/>" class="beaconNewFlowsTab" name="Flows">Flows</a>
+              <a href="<c:url value="/wm/core/switch/${hexId}/tables"/>" class="beaconNewRefreshingTab" name="Tables">Tables</a>
+              <a href="<c:url value="/wm/core/switch/${hexId}/ports"/>" class="beaconNewRefreshingTab" name="Ports">Ports</a>
             </td>
           </tr>
         </c:forEach>

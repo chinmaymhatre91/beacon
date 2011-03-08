@@ -36,6 +36,7 @@ import org.openflow.protocol.OFStatisticsRequest;
 import org.openflow.protocol.OFType;
 import org.openflow.protocol.statistics.OFFlowStatisticsReply;
 import org.openflow.protocol.statistics.OFFlowStatisticsRequest;
+import org.openflow.protocol.statistics.OFPortStatisticsRequest;
 import org.openflow.protocol.statistics.OFStatistics;
 import org.openflow.protocol.statistics.OFStatisticsType;
 import org.openflow.util.HexString;
@@ -69,6 +70,14 @@ import org.springframework.web.servlet.View;
 @Controller
 @RequestMapping("/core")
 public class CoreWebManageable implements BundleContextAware, IWebManageable {
+    /**
+     * Used to retrieve the OpenFlow request objects for the statistics request
+     *
+     */
+    protected interface OFSRCallback {
+        OFStatisticsRequest getRequest();
+    }
+
     protected static Logger log = LoggerFactory.getLogger(CoreWebManageable.class);
     protected IBeaconProvider beaconProvider;
     protected BundleContext bundleContext;
@@ -215,11 +224,23 @@ public class CoreWebManageable implements BundleContextAware, IWebManageable {
         return view;
     }
 
-    protected List<OFStatistics> getSwitchFlows(String switchId) {
+    protected List<OFStatistics> getSwitchStats(OFSRCallback f, String switchId, String statsType) {
         IOFSwitch sw = beaconProvider.getSwitches().get(HexString.toLong(switchId));
         Future<List<OFStatistics>> future;
         List<OFStatistics> values = null;
         if (sw != null) {
+            try {
+                future = sw.getStatistics(f.getRequest());
+                values = future.get(10, TimeUnit.SECONDS);
+            } catch (Exception e) {
+                log.error("Failure retrieving " + statsType, e);
+            }
+        }
+        return values;
+    }
+
+    protected class makeFlowStatsRequest implements OFSRCallback {
+        public OFStatisticsRequest getRequest() {
             OFStatisticsRequest req = new OFStatisticsRequest();
             OFFlowStatisticsRequest fsr = new OFFlowStatisticsRequest();
             OFMatch match = new OFMatch();
@@ -230,15 +251,24 @@ public class CoreWebManageable implements BundleContextAware, IWebManageable {
             req.setStatisticType(OFStatisticsType.FLOW);
             req.setStatistics(Collections.singletonList((OFStatistics)fsr));
             req.setLengthU(req.getLengthU() + fsr.getLength());
-            try {
-                future = sw.getStatistics(req);
-                values = future.get(10, TimeUnit.SECONDS);
-            } catch (Exception e) {
-                log.error("Failure retrieving flows", e);
-            }
-        }
-        return values;
+            return req;
+        };
     }
+
+    public String addStatsSection(String statsType, @PathVariable String switchId, Map<String,Object> model, List<OFStatistics> stats) {
+        OneColumnLayout layout = new OneColumnLayout();
+        model.put("title", statsType + " for switch: " + switchId);
+        model.put("layout", layout);
+        model.put(statsType, stats);
+        layout.addSection(new JspSection(statsType + ".jsp", model), null);
+        return BeaconViewResolver.SIMPLE_VIEW;
+    }
+
+    protected List<OFStatistics> getSwitchFlows(String switchId) {
+        return getSwitchStats(new makeFlowStatsRequest(), switchId, "flows");
+    }
+
+    // FLOWS
 
     @RequestMapping("/switch/{switchId}/flows/json")
     public View getSwitchFlowsJson(@PathVariable String switchId, Map<String,Object> model) {
@@ -247,6 +277,7 @@ public class CoreWebManageable implements BundleContextAware, IWebManageable {
         return view;
     }
 
+    @SuppressWarnings("unchecked")
     @RequestMapping("/switch/{switchId}/flows/dataTable")
     public View getSwitchFlowsDataTable(@PathVariable String switchId, Map<String,Object> model) {
         List<OFFlowStatisticsReply> data = new ArrayList<OFFlowStatisticsReply>();
@@ -265,11 +296,67 @@ public class CoreWebManageable implements BundleContextAware, IWebManageable {
         OneColumnLayout layout = new OneColumnLayout();
         model.put("title", "Flows for switch: " + switchId);
         model.put("layout", layout);
-        model.put("flows", getSwitchFlows(switchId));
         model.put("switchId", switchId);
         model.put("switchIdEsc", switchId.replaceAll(":", ""));
         layout.addSection(new JspSection("flows.jsp", model), null);
         return BeaconViewResolver.SIMPLE_VIEW;
+    }
+
+    protected List<OFStatistics> getSwitchTables(String switchId) {
+        return getSwitchStats(new OFSRCallback() {
+            @Override
+            public OFStatisticsRequest getRequest() {
+                OFStatisticsRequest req = new OFStatisticsRequest();
+                req.setStatisticType(OFStatisticsType.TABLE);
+                req.setLengthU(req.getLengthU());
+                return req;
+            }
+        }, switchId, "tables");
+    }
+
+    // TABLES
+
+    @RequestMapping("/switch/{switchId}/tables/json")
+    public View getSwitchTablesJson(@PathVariable String switchId, Map<String,Object> model) {
+        BeaconJsonView view = new BeaconJsonView();
+        model.put(BeaconJsonView.ROOT_OBJECT_KEY, getSwitchTables(switchId));
+        return view;
+    }
+
+    @RequestMapping("/switch/{switchId}/tables")
+    public String getSwitchTables(@PathVariable String switchId, Map<String,Object> model) {
+        List<OFStatistics> ports = getSwitchTables(switchId);
+        return addStatsSection("tables", switchId, model, ports);
+    }
+
+    protected List<OFStatistics> getSwitchPorts(String switchId) {
+        return getSwitchStats(new OFSRCallback() {
+            @Override
+            public OFStatisticsRequest getRequest() {
+                OFStatisticsRequest req = new OFStatisticsRequest();
+                OFPortStatisticsRequest psr = new OFPortStatisticsRequest();
+                psr.setPortNumber(OFPort.OFPP_NONE.getValue());
+                req.setStatisticType(OFStatisticsType.PORT);
+                req.setStatistics(Collections.singletonList((OFStatistics)psr));
+                req.setLengthU(req.getLengthU() + psr.getLength());
+                return req;
+            }
+        }, switchId, "ports");
+    }
+
+    // PORTS
+
+    @RequestMapping("/switch/{switchId}/ports/json")
+    public View getSwitchPortsJson(@PathVariable String switchId, Map<String,Object> model) {
+        BeaconJsonView view = new BeaconJsonView();
+        model.put(BeaconJsonView.ROOT_OBJECT_KEY, getSwitchPorts(switchId));
+        return view;
+    }
+
+    @RequestMapping("/switch/{switchId}/ports")
+    public String getSwitchPorts(@PathVariable String switchId, Map<String,Object> model) {
+        List<OFStatistics> ports = getSwitchPorts(switchId);
+        return addStatsSection("ports", switchId, model, ports);
     }
 
     /**

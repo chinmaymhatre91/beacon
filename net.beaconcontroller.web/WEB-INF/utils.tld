@@ -21,4 +21,10 @@
     <function-class>org.openflow.util.U32</function-class>
     <function-signature>long f(int)</function-signature>
   </function>
+
+  <function>
+    <name>longUnsigned</name>
+    <function-class>org.openflow.util.U64</function-class>
+    <function-signature>BigInteger f(long)</function-signature>
+  </function>
 </taglib> 
