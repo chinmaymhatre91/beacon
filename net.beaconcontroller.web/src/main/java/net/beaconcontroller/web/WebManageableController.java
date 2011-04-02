@@ -37,7 +37,7 @@ public class WebManageableController {
     /**
      * @param webManageables the webManageables to set
      */
-    @Autowired
+    @Autowired(required=false)
     public void setWebManageables(List<IWebManageable> webManageables) {
         this.webManageables = webManageables;
         // sort the list
