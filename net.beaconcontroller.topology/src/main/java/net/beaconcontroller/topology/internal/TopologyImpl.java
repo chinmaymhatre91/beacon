@@ -180,11 +180,11 @@ public class TopologyImpl implements IOFMessageListener, IOFSwitchListener, ITop
         updatesThread.interrupt();
     }
 
-    protected void sendLLDPs() {
+    protected void sendLLDP(IOFSwitch sw) {
         Ethernet ethernet = new Ethernet()
-            .setSourceMACAddress(new byte[6])
-            .setDestinationMACAddress("01:80:c2:00:00:0e")
-            .setEtherType(Ethernet.TYPE_LLDP);
+        .setSourceMACAddress(new byte[6])
+        .setDestinationMACAddress("01:80:c2:00:00:0e")
+        .setEtherType(Ethernet.TYPE_LLDP);
 
         LLDP lldp = new LLDP();
         ethernet.setPayload(lldp);
@@ -200,58 +200,57 @@ public class TopologyImpl implements IOFMessageListener, IOFSwitchListener, ITop
         lldp.setOptionalTLVList(new ArrayList<LLDPTLV>());
         lldp.getOptionalTLVList().add(dpidTLV);
 
-        Map<Long, IOFSwitch> switches = beaconProvider.getSwitches();
         byte[] dpidArray = new byte[8];
         ByteBuffer dpidBB = ByteBuffer.wrap(dpidArray);
         ByteBuffer portBB = ByteBuffer.wrap(portId, 1, 2);
-        for (Entry<Long, IOFSwitch> entry : switches.entrySet()) {
-            Long dpid = entry.getKey();
-            IOFSwitch sw = entry.getValue();
-            dpidBB.putLong(dpid);
+        Long dpid = sw.getId();
+        dpidBB.putLong(dpid);
 
-            // set the ethernet source mac to last 6 bytes of dpid
-            System.arraycopy(dpidArray, 2, ethernet.getSourceMACAddress(), 0, 6);
-            // set the chassis id's value to last 6 bytes of dpid
-            System.arraycopy(dpidArray, 2, chassisId, 1, 6);
-            // set the optional tlv to the full dpid
-            System.arraycopy(dpidArray, 0, dpidTLVValue, 4, 8);
-            for (OFPhysicalPort port : sw.getFeaturesReply().getPorts()) {
-                if (port.getPortNumber() == OFPort.OFPP_LOCAL.getValue())
-                    continue;
+        // set the ethernet source mac to last 6 bytes of dpid
+        System.arraycopy(dpidArray, 2, ethernet.getSourceMACAddress(), 0, 6);
+        // set the chassis id's value to last 6 bytes of dpid
+        System.arraycopy(dpidArray, 2, chassisId, 1, 6);
+        // set the optional tlv to the full dpid
+        System.arraycopy(dpidArray, 0, dpidTLVValue, 4, 8);
+        for (OFPhysicalPort port : sw.getFeaturesReply().getPorts()) {
+            if (port.getPortNumber() == OFPort.OFPP_LOCAL.getValue())
+                continue;
 
-                // set the portId to the outgoing port
-                portBB.putShort(port.getPortNumber());
+            // set the portId to the outgoing port
+            portBB.putShort(port.getPortNumber());
 
-                // serialize and wrap in a packet out
-                byte[] data = ethernet.serialize();
-                OFPacketOut po = new OFPacketOut();
-                po.setBufferId(OFPacketOut.BUFFER_ID_NONE);
-                po.setInPort(OFPort.OFPP_NONE);
+            // serialize and wrap in a packet out
+            byte[] data = ethernet.serialize();
+            OFPacketOut po = new OFPacketOut();
+            po.setBufferId(OFPacketOut.BUFFER_ID_NONE);
+            po.setInPort(OFPort.OFPP_NONE);
 
-                // set actions
-                List<OFAction> actions = new ArrayList<OFAction>();
-                actions.add(new OFActionOutput(port.getPortNumber(), (short) 0));
-                po.setActions(actions);
-                po.setActionsLength((short) OFActionOutput.MINIMUM_LENGTH);
+            // set actions
+            List<OFAction> actions = new ArrayList<OFAction>();
+            actions.add(new OFActionOutput(port.getPortNumber(), (short) 0));
+            po.setActions(actions);
+            po.setActionsLength((short) OFActionOutput.MINIMUM_LENGTH);
 
-                // set data
-                po.setLengthU(OFPacketOut.MINIMUM_LENGTH + po.getActionsLength() + data.length);
-                po.setPacketData(data);
+            // set data
+            po.setLengthU(OFPacketOut.MINIMUM_LENGTH + po.getActionsLength() + data.length);
+            po.setPacketData(data);
 
-                // send
-                try {
-                    sw.getOutputStream().write(po);
-                } catch (IOException e) {
-                    log.error("Failure sending LLDP", e);
-                }
-
-                // rewind for next pass
-                portBB.position(1);
+            // send
+            try {
+                sw.getOutputStream().write(po);
+            } catch (IOException e) {
+                log.error("Failure sending LLDP", e);
             }
 
             // rewind for next pass
-            dpidBB.position(0);
+            portBB.position(1);
         }
+    }
+
+    protected void sendLLDPs() {
+        Map<Long, IOFSwitch> switches = beaconProvider.getSwitches();
+        for (Map.Entry<Long, IOFSwitch> entry : switches.entrySet())
+            sendLLDP(entry.getValue());
     }
 
     @Override
@@ -313,13 +312,26 @@ public class TopologyImpl implements IOFMessageListener, IOFSwitchListener, ITop
         // Store the time of update to this link, and push it out to routingEngine
         LinkTuple lt = new LinkTuple(new SwitchPortTuple(remoteSwitch, remotePort),
                 new SwitchPortTuple(sw, pi.getInPort()));
-        addOrUpdateLink(lt);
+
+        if (addOrUpdateLink(lt)) {
+            /**
+             * If a new link was discovered, trigger an LLDP from the destination
+             * switch so the reverse direction can also be discovered if available.
+             */
+            sendLLDP(lt.getDst().getSw());
+        }
 
         // Consume this message
         return Command.STOP;
     }
 
-    protected void addOrUpdateLink(LinkTuple lt) {
+    /**
+     * Updates the state of Topology.  Returns true of the link was added,
+     * or false if it was an update to an already known link.
+     * @param lt
+     * @return
+     */
+    protected boolean addOrUpdateLink(LinkTuple lt) {
         lock.writeLock().lock();
         try {
             if (links.put(lt, System.currentTimeMillis()) == null) {
@@ -344,7 +356,9 @@ public class TopologyImpl implements IOFMessageListener, IOFSwitchListener, ITop
 
                 updates.add(new Update(lt, true));
                 log.debug("Added link {}", lt);
+                return true;
             }
+            return false;
         } finally {
             lock.writeLock().unlock();
         }
@@ -407,7 +421,7 @@ public class TopologyImpl implements IOFMessageListener, IOFSwitchListener, ITop
 
     @Override
     public void addedSwitch(IOFSwitch sw) {
-        // no-op
+        sendLLDP(sw);
     }
 
     @Override
