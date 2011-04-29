@@ -1,6 +1,5 @@
 package net.beaconcontroller.logging.bridge;
 
-import org.eclipse.equinox.log.ExtendedLogReaderService;
 import org.osgi.framework.BundleContext;
 import org.osgi.service.log.LogListener;
 import org.osgi.service.log.LogReaderService;
@@ -45,14 +44,6 @@ public class OSGIToSLF4JLoggingBridge {
     }
 
     public void removeLogReaderService(LogReaderService service) {
-        service.removeLogListener(this.logListener);
-    }
-
-    public void addExtendedLogReaderService(ExtendedLogReaderService service) {
-        service.addLogListener(this.logListener);
-    }
-
-    public void removeExtendedLogReaderService(ExtendedLogReaderService service) {
         service.removeLogListener(this.logListener);
     }
 }

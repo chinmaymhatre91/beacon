@@ -1,6 +1,5 @@
 package net.beaconcontroller.logging.bridge;
 
-import org.eclipse.equinox.log.ExtendedLogEntry;
 import org.osgi.service.log.LogEntry;
 import org.osgi.service.log.LogListener;
 import org.osgi.service.log.LogService;
@@ -15,12 +14,9 @@ public class SLF4JLogListener implements LogListener {
     private static Logger log = LoggerFactory.getLogger(SLF4JLogListener.class);
 
     public void logged(LogEntry entry) {
-        Logger log = SLF4JLogListener.log;
-        if (entry instanceof ExtendedLogEntry) {
-            ExtendedLogEntry extendedEntry = (ExtendedLogEntry) entry;
-            String loggerName = extendedEntry.getLoggerName();
-            if (loggerName != null)
-                log = LoggerFactory.getLogger(loggerName);
+        if (entry.getBundle() != null) {
+            log = LoggerFactory.getLogger(entry.getBundle().getSymbolicName()
+                    + "-" + entry.getBundle().getVersion().toString());
         }
 
         switch (entry.getLevel()) {
