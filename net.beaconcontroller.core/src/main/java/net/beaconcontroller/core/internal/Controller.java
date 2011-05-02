@@ -398,7 +398,10 @@ public class Controller implements IBeaconProvider, SelectListener {
                 if (orderArray[i].equals(listener.getName()))
                     myPos = i;
             }
-            List<String> beforeList = Arrays.asList(Arrays.copyOfRange(orderArray, 0, myPos));
+            List<String> beforeList = new ArrayList<String>();
+            for (int i = 0; i < myPos; ++i) {
+                beforeList.add(orderArray[i]);
+            }
 
             boolean added = false;
             // only try and walk if there are already listeners
