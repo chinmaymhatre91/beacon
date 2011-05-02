@@ -11,6 +11,7 @@ import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -101,6 +102,7 @@ public class Controller implements IBeaconProvider, SelectListener {
      * 
      */
     public Controller() {
+        this.callbackOrdering = new HashMap<String, String>();
         this.messageListeners =
             new ConcurrentHashMap<OFType, List<IOFMessageListener>>();
         this.switchListeners = new CopyOnWriteArraySet<IOFSwitchListener>();
@@ -426,7 +428,11 @@ public class Controller implements IBeaconProvider, SelectListener {
         }
     }
 
-    public void startUp() throws IOException {
+    public void startUp(Map<String,Object> properties) throws IOException {
+        if (properties.containsKey("listenPort"))
+            this.listenPort = (Integer)properties.get("listenPort");
+        if (properties.containsKey("packetInOrdering"))
+            this.callbackOrdering.put("PACKET_IN", (String)properties.get("packetInOrdering"));
         listenSock = ServerSocketChannel.open();
         listenSock.configureBlocking(false);
         if (listenAddress != null) {

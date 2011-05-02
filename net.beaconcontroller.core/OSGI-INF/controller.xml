@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<scr:component xmlns:scr="http://www.osgi.org/xmlns/scr/v1.1.0" activate="startUp" deactivate="shutDown" immediate="true" name="controller">
+   <implementation class="net.beaconcontroller.core.internal.Controller"/>
+   <property name="listenPort" type="Integer" value="6633"/>
+   <service>
+      <provide interface="net.beaconcontroller.core.IBeaconProvider"/>
+   </service>
+   <property name="packetInOrdering" type="String" value="topology,devicemanager,routing,switch"/>
+</scr:component>
