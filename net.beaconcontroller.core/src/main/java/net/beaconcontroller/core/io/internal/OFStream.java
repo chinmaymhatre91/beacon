@@ -10,7 +10,6 @@ import java.util.List;
 
 import net.beaconcontroller.core.io.OFMessageSafeOutStream;
 
-import org.openflow.example.SelectLoop;
 import org.openflow.protocol.OFMessage;
 import org.openflow.protocol.factory.OFMessageFactory;
 import org.slf4j.Logger;
@@ -27,8 +26,9 @@ public class OFStream extends OFMessageAsyncStream implements OFMessageSafeOutSt
     protected Logger log = LoggerFactory.getLogger(OFStream.class);
 
     protected SelectionKey key;
-    protected SelectLoop selectLoop;
+    protected IOLoop ioLoop;
     protected boolean writeFailure = false;
+    protected boolean needsSelect = false;
 
     /**
      * @param sock
@@ -38,10 +38,10 @@ public class OFStream extends OFMessageAsyncStream implements OFMessageSafeOutSt
      * @throws IOException
      */
     public OFStream(SocketChannel sock, OFMessageFactory messageFactory,
-            SelectionKey key, SelectLoop selectLoop) throws IOException {
+            SelectionKey key, IOLoop selectLoop) throws IOException {
         super(sock, messageFactory);
         this.key = key;
-        this.selectLoop = selectLoop;
+        this.ioLoop = selectLoop;
     }
 
     /**
@@ -51,7 +51,6 @@ public class OFStream extends OFMessageAsyncStream implements OFMessageSafeOutSt
     public void write(OFMessage m) throws IOException {
         synchronized (outBuf) {
             appendMessageToOutBuf(m);
-            flush();
         }
       }
 
@@ -64,7 +63,6 @@ public class OFStream extends OFMessageAsyncStream implements OFMessageSafeOutSt
             for (OFMessage m : l) {
                 appendMessageToOutBuf(m);
             }
-            flush();
         }
     }
 
@@ -87,7 +85,7 @@ public class OFStream extends OFMessageAsyncStream implements OFMessageSafeOutSt
             outBuf.compact();
             if (outBuf.position() > 0) {
                 // force our select loop to wakeup, queue the remaining write
-                selectLoop.wakeup();
+                ioLoop.wakeup();
             }
         }
     }
@@ -108,5 +106,12 @@ public class OFStream extends OFMessageAsyncStream implements OFMessageSafeOutSt
      */
     public boolean getWriteFailure() {
         return writeFailure;
+    }
+
+    /**
+     * @return the needsSelect
+     */
+    public boolean getNeedsSelect() {
+        return needsSelect;
     }
 }

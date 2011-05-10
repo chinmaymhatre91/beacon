@@ -34,10 +34,10 @@ import net.beaconcontroller.core.IOFSwitch;
 import net.beaconcontroller.core.IOFSwitchFilter;
 import net.beaconcontroller.core.IOFSwitchListener;
 import net.beaconcontroller.core.io.internal.OFStream;
+import net.beaconcontroller.core.io.internal.SelectListener;
+import net.beaconcontroller.core.io.internal.IOLoop;
 import net.beaconcontroller.packet.IPv4;
 
-import org.openflow.example.SelectListener;
-import org.openflow.example.SelectLoop;
 import org.openflow.io.OFMessageInStream;
 import org.openflow.io.OFMessageOutStream;
 import org.openflow.protocol.OFEchoReply;
@@ -75,14 +75,14 @@ public class Controller implements IBeaconProvider, SelectListener {
     protected BasicFactory factory;
     protected String listenAddress;
     protected int listenPort = 6633;
-    protected SelectLoop listenSelectLoop;
+    protected IOLoop listenerIOLoop;
     protected ServerSocketChannel listenSock;
     protected ConcurrentMap<OFType, List<IOFMessageListener>> messageListeners;
     protected volatile boolean shuttingDown = false;
     protected ConcurrentHashMap<Long, IOFSwitch> switches;
     protected Set<IOFSwitchListener> switchListeners;
     protected boolean switchRequirementsTimer = true;
-    protected List<SelectLoop> switchSelectLoops;
+    protected List<IOLoop> switchIOLoops;
     protected Integer threadCount;
     protected BlockingQueue<Update> updates;
     protected Thread updatesThread;
@@ -118,12 +118,13 @@ public class Controller implements IBeaconProvider, SelectListener {
             throws IOException {
         SocketChannel sock = listenSock.accept();
         log.info("Switch connected from {}", sock.toString());
-        sock.socket().setTcpNoDelay(false);
+        sock.socket().setTcpNoDelay(true);
         sock.configureBlocking(false);
+        sock.socket().setSendBufferSize(1024*1024);
         OFSwitchImpl sw = new OFSwitchImpl();
         // hash this switch into a thread
-        final SelectLoop sl = switchSelectLoops.get(sock.hashCode()
-                % switchSelectLoops.size());
+        final IOLoop sl = switchIOLoops.get(sock.hashCode()
+                % switchIOLoops.size());
 
         // register initially with no ops because we need the key to init the stream
         SelectionKey switchKey = sl.registerBlocking(sock, 0, sw);
@@ -143,7 +144,7 @@ public class Controller implements IBeaconProvider, SelectListener {
 
     protected void handleSwitchEvent(SelectionKey key, IOFSwitch sw) {
         OFMessageInStream in = sw.getInputStream();
-        OFMessageOutStream out = sw.getOutputStream();
+        OFStream out = ((OFStream)sw.getOutputStream());
         OFStream stream = (OFStream) in;
         try {
             /**
@@ -428,6 +429,7 @@ public class Controller implements IBeaconProvider, SelectListener {
 
     public void startUp() throws IOException {
         listenSock = ServerSocketChannel.open();
+        listenSock.socket().setReceiveBufferSize(512*1024);
         listenSock.configureBlocking(false);
         if (listenAddress != null) {
             listenSock.socket().bind(
@@ -442,15 +444,15 @@ public class Controller implements IBeaconProvider, SelectListener {
         log.info("Controller listening on {}:{}", listenAddress == null ? "*"
                 : listenAddress, listenPort);
 
-        switchSelectLoops = new ArrayList<SelectLoop>();
+        switchIOLoops = new ArrayList<IOLoop>();
         switches = new ConcurrentHashMap<Long, IOFSwitch>();
 
         if (threadCount == null)
             threadCount = 1;
 
-        listenSelectLoop = new SelectLoop(this);
+        listenerIOLoop = new IOLoop(this);
         // register this connection for accepting
-        listenSelectLoop.register(listenSock, SelectionKey.OP_ACCEPT, listenSock);
+        listenerIOLoop.register(listenSock, SelectionKey.OP_ACCEPT, listenSock);
 
         this.factory = new BasicFactory();
 
@@ -459,8 +461,8 @@ public class Controller implements IBeaconProvider, SelectListener {
 
         // Launch one select loop per threadCount and start running
         for (int i = 0; i < threadCount; ++i) {
-            final SelectLoop sl = new SelectLoop(this, 500);
-            switchSelectLoops.add(sl);
+            final IOLoop sl = new IOLoop(this, 500);
+            switchIOLoops.add(sl);
             es.execute(new Runnable() {
                 public void run() {
                     try {
@@ -476,7 +478,7 @@ public class Controller implements IBeaconProvider, SelectListener {
             public void run() {
                 // Start the listen loop
                 try {
-                    listenSelectLoop.doLoop();
+                    listenerIOLoop.doLoop();
                 } catch (Exception e) {
                     log.error("Exception during accept loop, terminating thread", e);
                 }
@@ -515,7 +517,7 @@ public class Controller implements IBeaconProvider, SelectListener {
     public void shutDown() throws IOException {
         shuttingDown = true;
         // shutdown listening for new switches
-        listenSelectLoop.shutdown();
+        listenerIOLoop.shutdown();
         listenSock.socket().close();
         listenSock.close();
 
@@ -527,7 +529,7 @@ public class Controller implements IBeaconProvider, SelectListener {
         }
 
         // shutdown the connected switch select loops
-        for (SelectLoop sl : switchSelectLoops) {
+        for (IOLoop sl : switchIOLoops) {
             sl.shutdown();
         }
 

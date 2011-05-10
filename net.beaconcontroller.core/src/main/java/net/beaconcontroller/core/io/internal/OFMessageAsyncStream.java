@@ -22,7 +22,7 @@ import org.openflow.protocol.factory.OFMessageFactory;
  *
  */
 public class OFMessageAsyncStream implements OFMessageInStream, OFMessageOutStream {
-    static public int defaultBufferSize = 65536;
+    static public int defaultBufferSize = 1048576;
 
     protected ByteBuffer inBuf, outBuf;
     protected OFMessageFactory messageFactory;
@@ -31,7 +31,7 @@ public class OFMessageAsyncStream implements OFMessageInStream, OFMessageOutStre
 
     public OFMessageAsyncStream(SocketChannel sock,
             OFMessageFactory messageFactory) throws IOException {
-        inBuf = ByteBuffer.allocateDirect(OFMessageAsyncStream.defaultBufferSize);
+        inBuf = ByteBuffer.allocateDirect(512*1024);
         outBuf = ByteBuffer.allocateDirect(OFMessageAsyncStream.defaultBufferSize);
         this.sock = sock;
         this.messageFactory = messageFactory;
