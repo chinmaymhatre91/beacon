@@ -29,6 +29,7 @@ public class OFStream extends OFMessageAsyncStream implements OFMessageSafeOutSt
     protected IOLoop ioLoop;
     protected boolean writeFailure = false;
     protected boolean needsSelect = false;
+    protected boolean wrote = false;
 
     /**
      * @param sock
@@ -51,6 +52,9 @@ public class OFStream extends OFMessageAsyncStream implements OFMessageSafeOutSt
     public void write(OFMessage m) throws IOException {
         synchronized (outBuf) {
             appendMessageToOutBuf(m);
+            if (!wrote && !needsSelect) {
+                flush();
+            }
         }
       }
 
@@ -63,6 +67,9 @@ public class OFStream extends OFMessageAsyncStream implements OFMessageSafeOutSt
             for (OFMessage m : l) {
                 appendMessageToOutBuf(m);
             }
+            if (!wrote && !needsSelect) {
+                flush();
+            }
         }
     }
 
@@ -73,6 +80,8 @@ public class OFStream extends OFMessageAsyncStream implements OFMessageSafeOutSt
      */
     public void flush() throws IOException {
         synchronized (outBuf) {
+            if (wrote || needsSelect)
+                return;
             outBuf.flip(); // swap pointers; lim = pos; pos = 0;
             try {
                 sock.write(outBuf); // write data starting at pos up to lim
@@ -82,10 +91,12 @@ public class OFStream extends OFMessageAsyncStream implements OFMessageSafeOutSt
                 this.writeFailure = true;
                 // TODO should we propogate this failure?
             }
+            wrote = true;
             outBuf.compact();
             if (outBuf.position() > 0) {
-                // force our select loop to wakeup, queue the remaining write
-                ioLoop.wakeup();
+                needsSelect = true;
+//                // force our select loop to wakeup, queue the remaining write
+//                ioLoop.wakeup();
             }
         }
     }
@@ -112,6 +123,39 @@ public class OFStream extends OFMessageAsyncStream implements OFMessageSafeOutSt
      * @return the needsSelect
      */
     public boolean getNeedsSelect() {
-        return needsSelect;
+        synchronized (outBuf) {
+            return needsSelect;
+        }
+    }
+
+    public void clearWrote() throws IOException {
+        synchronized (outBuf) {
+            this.wrote = false;
+            if (outBuf.position() > 0 && !needsSelect)
+                flush();
+        }
+    }
+
+    public void clearSelect() throws IOException {
+        synchronized (outBuf) {
+            this.wrote = false;
+            this.needsSelect = false;
+            if (outBuf.position() > 0)
+                flush();
+        }
+    }
+
+    /**
+     * @return the key
+     */
+    public SelectionKey getKey() {
+        return key;
+    }
+
+    /**
+     * @return the ioLoop
+     */
+    public IOLoop getIOLoop() {
+        return ioLoop;
     }
 }

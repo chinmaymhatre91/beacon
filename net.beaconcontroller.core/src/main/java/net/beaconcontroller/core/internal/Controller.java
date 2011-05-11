@@ -136,6 +136,7 @@ public class Controller implements IBeaconProvider, SelectListener {
 
         // register for read
         switchKey.interestOps(SelectionKey.OP_READ);
+        sl.addStream(stream);
         sl.wakeup();
 
         // Send HELLO
@@ -143,9 +144,8 @@ public class Controller implements IBeaconProvider, SelectListener {
     }
 
     protected void handleSwitchEvent(SelectionKey key, IOFSwitch sw) {
-        OFMessageInStream in = sw.getInputStream();
         OFStream out = ((OFStream)sw.getOutputStream());
-        OFStream stream = (OFStream) in;
+        OFStream in = (OFStream) sw.getInputStream();
         try {
             /**
              * A key may not be valid here if it has been disconnected while
@@ -165,22 +165,14 @@ public class Controller implements IBeaconProvider, SelectListener {
             }
 
             if (key.isWritable()) {
-                out.flush();
+                out.clearSelect();
+                key.interestOps(SelectionKey.OP_READ);
             }
 
-            if (stream.getWriteFailure()) {
+            if (out.getWriteFailure()) {
                 disconnectSwitch(key, sw);
                 return;
             }
-
-            /**
-             * Only register for interest in R OR W, not both, causes stream
-             * deadlock after some period of time
-             */
-            if (out.needsFlush())
-                key.interestOps(SelectionKey.OP_WRITE);
-            else
-                key.interestOps(SelectionKey.OP_READ);
         } catch (IOException e) {
             // if we have an exception, disconnect the switch
             disconnectSwitch(key, sw);
@@ -192,6 +184,8 @@ public class Controller implements IBeaconProvider, SelectListener {
      */
     protected void disconnectSwitch(SelectionKey key, IOFSwitch sw) {
         key.cancel();
+        OFStream stream = (OFStream) sw.getInputStream();
+        stream.getIOLoop().removeStream(stream);
         stopSwitchRequirementsTimer(sw);
         // only remove if we have a features reply (DPID)
         if (sw.getFeaturesReply() != null)

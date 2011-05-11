@@ -12,6 +12,8 @@ import org.openflow.io.OFMessageInStream;
 import org.openflow.io.OFMessageOutStream;
 import org.openflow.protocol.OFMessage;
 import org.openflow.protocol.factory.OFMessageFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Asynchronous OpenFlow message marshalling and unmarshalling stream wrapped
@@ -22,6 +24,7 @@ import org.openflow.protocol.factory.OFMessageFactory;
  *
  */
 public class OFMessageAsyncStream implements OFMessageInStream, OFMessageOutStream {
+    static protected Logger log = LoggerFactory.getLogger(OFMessageAsyncStream.class);
     static public int defaultBufferSize = 1048576;
 
     protected ByteBuffer inBuf, outBuf;
@@ -61,8 +64,13 @@ public class OFMessageAsyncStream implements OFMessageInStream, OFMessageOutStre
     protected void appendMessageToOutBuf(OFMessage m) throws IOException {
         int msglen = m.getLengthU();
         if (outBuf.remaining() < msglen) {
-            throw new IOException(
-                    "Message length exceeds buffer capacity: " + msglen);
+            // grow size by 50%
+            ByteBuffer newOut = ByteBuffer.allocateDirect((int) Math
+                    .round(outBuf.capacity() * 1.5));
+            outBuf.flip();
+            newOut.put(outBuf);
+            outBuf = newOut;
+            log.info("Grew outgoing buffer to size {}", outBuf.capacity());
         }
         m.writeTo(outBuf);
     }

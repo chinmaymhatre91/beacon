@@ -7,8 +7,10 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.spi.SelectorProvider;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /***
  * Dirt simple SelectLoop for simple java controller
@@ -22,7 +24,9 @@ public class IOLoop {
     protected int registrationRequests = 0;
     protected Queue<Object[]> registrationQueue;
     protected Selector selector;
+    protected List<OFStream> streams;
     protected long timeout;
+    
 
     public IOLoop(SelectListener cb) throws IOException {
         callback = cb;
@@ -30,6 +34,7 @@ public class IOLoop {
         selector = SelectorProvider.provider().openSelector();
         registrationLock = new Object();
         registrationQueue = new ConcurrentLinkedQueue<Object[]>();
+        streams = new CopyOnWriteArrayList<OFStream>();
         timeout = 0;
     }
 
@@ -46,6 +51,7 @@ public class IOLoop {
         selector = SelectorProvider.provider().openSelector();
         registrationLock = new Object();
         registrationQueue = new ConcurrentLinkedQueue<Object[]>();
+        streams = new CopyOnWriteArrayList<OFStream>();
         this.timeout = timeout;
     }
 
@@ -87,6 +93,14 @@ public class IOLoop {
         processRegistrationQueue();
 
         while (dontStop) {
+            for (OFStream stream : streams) {
+                stream.clearWrote();
+                if (stream.getNeedsSelect()) {
+                    stream.getKey().interestOps(
+                            stream.getKey().interestOps()
+                                    | SelectionKey.OP_WRITE);
+                }
+            }
             nEvents = selector.select(timeout);
             if (nEvents > 0) {
                 for (Iterator<SelectionKey> i = selector.selectedKeys()
@@ -150,5 +164,13 @@ public class IOLoop {
     public void shutdown() {
         this.dontStop = false;
         wakeup();
+    }
+
+    public void addStream(OFStream stream) {
+        this.streams.add(stream);
+    }
+
+    public void removeStream(OFStream stream) {
+        this.streams.remove(stream);
     }
 }
