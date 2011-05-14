@@ -8,7 +8,9 @@ import java.util.Map;
 import net.beaconcontroller.core.IBeaconProvider;
 import net.beaconcontroller.core.IOFMessageListener;
 import net.beaconcontroller.core.IOFSwitch;
+import net.beaconcontroller.core.IOFSwitchListener;
 import net.beaconcontroller.packet.Ethernet;
+import net.beaconcontroller.util.LongShortHopscotchHashMap;
 
 import org.openflow.protocol.OFFlowMod;
 import org.openflow.protocol.OFMatch;
@@ -28,11 +30,11 @@ import org.slf4j.LoggerFactory;
  *
  * @author David Erickson (daviderickson@cs.stanford.edu) - 04/04/10
  */
-public class LearningSwitch implements IOFMessageListener {
+public class LearningSwitch implements IOFMessageListener, IOFSwitchListener {
     protected static Logger log = LoggerFactory.getLogger(LearningSwitch.class);
     protected IBeaconProvider beaconProvider;
-    protected Map<IOFSwitch, Map<Long, Short>> macTables =
-        new HashMap<IOFSwitch, Map<Long, Short>>();
+    protected Map<IOFSwitch, LongShortHopscotchHashMap> macTables =
+        new HashMap<IOFSwitch, LongShortHopscotchHashMap>();
 
     /**
      * @param beaconProvider the beaconProvider to set
@@ -44,36 +46,39 @@ public class LearningSwitch implements IOFMessageListener {
     public void startUp() {
         log.trace("Starting");
         beaconProvider.addOFMessageListener(OFType.PACKET_IN, this);
+        beaconProvider.addOFSwitchListener(this);
     }
 
     public void shutDown() {
         log.trace("Stopping");
         beaconProvider.removeOFMessageListener(OFType.PACKET_IN, this);
+        beaconProvider.removeOFSwitchListener(this);
     }
 
     public String getName() {
         return "switch";
     }
 
-    /**
-     * @return the macTables
-     */
-    public Map<IOFSwitch, Map<Long, Short>> getMacTables() {
-        return macTables;
-    }
-
-    /**
-     * @param macTables the macTables to set
-     */
-    public void setMacTables(Map<IOFSwitch, Map<Long, Short>> macTables) {
-        this.macTables = macTables;
-    }
+//    /**
+//     * @return the macTables
+//     */
+//    public Map<IOFSwitch, Map<Long, Short>> getMacTables() {
+//        return macTables;
+//    }
+//
+//    /**
+//     * @param macTables the macTables to set
+//     */
+//    public void setMacTables(Map<IOFSwitch, Map<Long, Short>> macTables) {
+//        this.macTables = macTables;
+//    }
 
     public Command receive(IOFSwitch sw, OFMessage msg) {
         OFPacketIn pi = (OFPacketIn) msg;
-        Map<Long, Short> macTable = macTables.get(sw);
+        LongShortHopscotchHashMap macTable = macTables.get(sw);
         if (macTable == null) {
-            macTable = new LRULinkedHashMap<Long, Short>(64001, 64000);
+//            macTable = new LRULinkedHashMap<Long, Short>(64001, 64000);
+            macTable = new LongShortHopscotchHashMap();
             macTables.put(sw, macTable);
         }
 
@@ -82,25 +87,25 @@ public class LearningSwitch implements IOFMessageListener {
         match.loadFromPacket(pi.getPacketData(), pi.getInPort());
         byte[] dlDst = match.getDataLayerDestination();
         byte[] dlSrc = match.getDataLayerSource();
-        Long dlSrcLong = Ethernet.toLong(dlSrc);
+        long dlSrcLong = Ethernet.toLong(dlSrc);
         int bufferId = pi.getBufferId();
 
         // if the src is not multicast, learn it
         if ((dlSrc[0] & 0x1) == 0) {
-            if (!macTable.containsKey(dlSrcLong) ||
-                    !macTable.get(dlSrcLong).equals(pi.getInPort())) {
+            if (!macTable.contains(dlSrcLong) ||
+                    macTable.get(dlSrcLong) != pi.getInPort()) {
                 macTable.put(dlSrcLong, pi.getInPort());
             }
         }
 
-        Short outPort = null;
+        short outPort = -1;
         // if the destination is not multicast, look it up
         if ((dlDst[0] & 0x1) == 0) {
             outPort = macTable.get(Ethernet.toLong(dlDst));
         }
 
         // push a flow mod if we know where the destination lives
-        if (outPort != null) {
+        if (outPort != -1) {
             if (outPort == pi.getInPort()) {
                 // don't send out the port it came in
                 return Command.CONTINUE;
@@ -128,10 +133,10 @@ public class LearningSwitch implements IOFMessageListener {
         }
 
         // Send a packet out
-        if (outPort == null || pi.getBufferId() == 0xffffffff) {
+        if (outPort == -1 || pi.getBufferId() == 0xffffffff) {
             // build action
             OFActionOutput action = new OFActionOutput()
-                .setPort((short) ((outPort == null) ? OFPort.OFPP_FLOOD
+                .setPort((short) ((outPort == -1) ? OFPort.OFPP_FLOOD
                     .getValue() : outPort));
 
             // build packet out
@@ -159,5 +164,15 @@ public class LearningSwitch implements IOFMessageListener {
             }
         }
         return Command.CONTINUE;
+    }
+
+    @Override
+    public void addedSwitch(IOFSwitch sw) {
+    }
+
+    @Override
+    public void removedSwitch(IOFSwitch sw) {
+        if (macTables.remove(sw) != null)
+            log.debug("Removed l2 table for {}", sw);
     }
 }

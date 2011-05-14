@@ -25,16 +25,21 @@ public class LongShortHopscotchHashMap {
     protected long[] segments;
     protected short defaultValue = -1;
     protected byte[] keyBytes;
-    protected int[] hopHelper;
+    protected int[] keyInts;
+    protected final static int[] hopHelper;
     protected long keys = 0;
 
-    public LongShortHopscotchHashMap() {
-        segments = new long[num_segments*num_buckets*2];
-        keyBytes = new byte[8];
+    static {
         hopHelper = new int[32];
         for (int i = 0; i < 32; ++i) {
             hopHelper[i] = Integer.MIN_VALUE >>> i;
         }
+    }
+
+    public LongShortHopscotchHashMap() {
+        segments = new long[num_segments*num_buckets*2];
+        keyBytes = new byte[8];
+        keyInts = new int[2];
     }
 
     public short put(long key, short value) {
@@ -168,9 +173,9 @@ public class LongShortHopscotchHashMap {
      * @return
      */
     protected int hash(long key) {
-        int h = (int)(key ^ (key >>> 32));
-        h ^= (h >>> 20) ^ (h >>> 12);
-        return h ^ (h >>> 7) ^ (h >>> 4);
+//        int h = (int)(key ^ (key >>> 32));
+//        h ^= (h >>> 20) ^ (h >>> 12);
+//        return h ^ (h >>> 7) ^ (h >>> 4);
 
 //        int hash, i;
 //        for (hash = i = 0; i < 8; ++i) {
@@ -185,6 +190,12 @@ public class LongShortHopscotchHashMap {
 //        for (int i = 0; i < 8; ++i) {
 //            keyBytes[i] = (byte) (key >>> (8*i));
 //        }
+        keyInts[0] = (int) (key & 0xffffffff);
+        keyInts[1] = (int) ((key >>> 32) & 0xffffffff);
+        
+//        return murmur32(keyBytes, 8, 283349958);
+        return murmur32(keyInts, 283349958);
+//        return mumurGetOpt(keyBytes, 283349958);
 //        return (int) (hasher.hash(keyBytes) & 0xffffffff);
 //        return MurmurHash2.hash(keyBytes, 94624148);
         //fnv mod
@@ -292,4 +303,122 @@ public class LongShortHopscotchHashMap {
         }
         return true;
     }
+
+    public static int murmur32( final int[] data, int seed) {
+        // 'm' and 'r' are mixing constants generated offline.
+        // They're not really 'magic', they just happen to work well.
+        final int m = 0x5bd1e995;
+        final int r = 24;
+        // Initialize the hash to a random value
+        int h = seed^8;
+//        int length4 = 2;
+
+        for (int i=0; i<2; i++) {
+            final int i4 = i*4;
+            int k = data[i];
+            k *= m;
+            k ^= k >>> r;
+            k *= m;
+            h *= m;
+            h ^= k;
+        }
+        
+        // Handle the last few bytes of the input array
+//        switch (length%4) {
+//        case 3: h ^= (data[(length&~3) +2]&0xff) << 16;
+//        case 2: h ^= (data[(length&~3) +1]&0xff) << 8;
+//        case 1: h ^= (data[length&~3]&0xff);
+//                h *= m;
+//        }
+
+        h ^= h >>> 13;
+        h *= m;
+        h ^= h >>> 15;
+
+        return h;
+    }
+
+    public static int murmur32( final byte[] data, int length, int seed) {
+        // 'm' and 'r' are mixing constants generated offline.
+        // They're not really 'magic', they just happen to work well.
+        final int m = 0x5bd1e995;
+        final int r = 24;
+        // Initialize the hash to a random value
+        int h = seed^length;
+        int length4 = length/4;
+
+        for (int i=0; i<length4; i++) {
+            final int i4 = i*4;
+            int k = (data[i4+0]&0xff) +((data[i4+1]&0xff)<<8)
+                    +((data[i4+2]&0xff)<<16) +((data[i4+3]&0xff)<<24);
+            k *= m;
+            k ^= k >>> r;
+            k *= m;
+            h *= m;
+            h ^= k;
+        }
+        
+        // Handle the last few bytes of the input array
+        switch (length%4) {
+        case 3: h ^= (data[(length&~3) +2]&0xff) << 16;
+        case 2: h ^= (data[(length&~3) +1]&0xff) << 8;
+        case 1: h ^= (data[length&~3]&0xff);
+                h *= m;
+        }
+
+        h ^= h >>> 13;
+        h *= m;
+        h ^= h >>> 15;
+
+        return h;
+    }
+    
+    public static int mumurGetOpt(byte[] data, int seed) {
+        int m = 0x5bd1e995;
+        int r = 24;
+
+        int h = seed ^ data.length;
+
+        int len = data.length;
+        int len_4 = len >> 2;
+
+        for (int i = 0; i < len_4; i++) {
+          int i_4 = i << 2;
+          int k = data[i_4 + 3];
+          k = k << 8;
+          k = k | (data[i_4 + 2] & 0xff);
+          k = k << 8;
+          k = k | (data[i_4 + 1] & 0xff);
+          k = k << 8;
+          k = k | (data[i_4 + 0] & 0xff);
+          k *= m;
+          k ^= k >>> r;
+          k *= m;
+          h *= m;
+          h ^= k;
+        }
+
+        int len_m = len_4 << 2;
+        int left = len - len_m;
+
+        if (left != 0) {
+          if (left >= 3) {
+            h ^= (int) data[len - 3] << 16;
+          }
+          if (left >= 2) {
+            h ^= (int) data[len - 2] << 8;
+          }
+          if (left >= 1) {
+            h ^= (int) data[len - 1];
+          }
+
+          h *= m;
+        }
+
+        h ^= h >>> 13;
+        h *= m;
+        h ^= h >>> 15;
+
+        return h;
+      }
 }
