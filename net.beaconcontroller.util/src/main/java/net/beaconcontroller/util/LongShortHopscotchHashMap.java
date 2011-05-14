@@ -4,18 +4,28 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
+ * This is a custom implementation of Hopscotch Hashing as initially written:
+ * Maurice Herlihy, Nir Shavit, and Moran Tzafrir. 2008. Hopscotch
+ * Hashing. In Proceedings of the 22nd international symposium on Distributed
+ * Computing (DISC '08).
  *
- * Internal array layout [key 8 bytes][value 2 bytes][blank 2 bytes][hop_info 4 bytes]
+ * This Map supports only a key of primitive long type, with value of primitive
+ * short type. Internally it is a single array of longs, with an overhead of 6
+ * bytes per entry, which is much less than the observed HashMap overhead per
+ * entry.
+ *
+ * Internal array layout [key 8 bytes][value 2 bytes | pad 2 bytes | hop_info 4 bytes],
+ *                       [key 8 bytes][value 2 bytes | pad 2 bytes | hop_info 4 bytes]..
+ *
  * @author David Erickson (daviderickson@cs.stanford.edu)
  */
 public class LongShortHopscotchHashMap {
     protected static Logger log = LoggerFactory.getLogger(LongShortHopscotchHashMap.class);
-    protected static int HOP_RANGE = 32;
-    protected static int ADD_RANGE = 256;
+    protected static final int HOP_RANGE = 32;
+    protected static final int ADD_RANGE = 256;
     protected static int MAX_SEGMENTS = 1024;
-    protected static int MAX_TRIES = 2;
-    protected static long VALUE_MASK = 0x0000ffffffffffffl;
-    protected static long HOPINFO_MASK = 0x00000000ffffffffl;
+    protected static final long VALUE_MASK = 0x0000ffffffffffffl;
+    protected static final long HOPINFO_MASK = 0x00000000ffffffffl;
 
     protected int num_segments = 1;
     protected int segment_mask = num_segments-1;
@@ -24,7 +34,6 @@ public class LongShortHopscotchHashMap {
     protected int segment_shift = 16;
     protected long[] segments;
     protected short defaultValue = -1;
-    protected byte[] keyBytes;
     protected int[] keyInts;
     protected final static int[] hopHelper;
     protected long keys = 0;
@@ -38,7 +47,6 @@ public class LongShortHopscotchHashMap {
 
     public LongShortHopscotchHashMap() {
         segments = new long[num_segments*num_buckets*2];
-        keyBytes = new byte[8];
         keyInts = new int[2];
     }
 
@@ -78,12 +86,7 @@ public class LongShortHopscotchHashMap {
                     segments[index+1] = (segments[index+1] & VALUE_MASK) | (((long)value) << 48);
                     int sourceIndex = ((iSegment * num_buckets) + iBucket)*2;
                     segments[sourceIndex+1] |= ((long)hopHelper[i]) & 0xffffffffL;
-                    //log.debug("Hopinfo {}", toBinary((int) (segments[sourceIndex+1] & HOPINFO_MASK)));
                     ++keys;
-//                    if (((double)keys / (double)(num_segments*num_buckets)) > 0.5) {
-//                        log.debug("Ratio {} Size {}", (double)(key-1)/(double)(num_segments*num_buckets), num_segments*num_buckets);
-//                        resize();
-//                    }
                     return defaultValue;
                 }
                 // find closer free bucket
@@ -92,11 +95,9 @@ public class LongShortHopscotchHashMap {
         }
 
         //log.debug("segment_mask {} bucket_mask {}", toBinary(segment_mask), toBinary(bucket_mask));
-        double ratio = (double)(keys)/(double)(num_segments*num_buckets);
+        //double ratio = (double)(keys)/(double)(num_segments*num_buckets);
         resize();
-//        if (num_buckets*num_segments > 1000000)
-//            resize();
-        log.debug("Ratio {} Size {} Trigger {}", new Object[] {ratio, num_segments*num_buckets, key});
+        //log.debug("Ratio {} Size {} Trigger {}", new Object[] {ratio, num_segments*num_buckets, key});
         return put(key, value);
     }
 
@@ -113,7 +114,6 @@ public class LongShortHopscotchHashMap {
         for (; j < i; ++j) {
             int hopInfoIndex = ((iSegment * num_buckets) + ((iBucket + j) % num_buckets))*2;
             int hopInfo = (int) (segments[hopInfoIndex+1] & 0xffffffff);
-            //log.debug("Hopinfo at {} {}", j, toBinary(hopInfo));
             for (int k = 0; j+k < i; ++k) {
                 if ((hopHelper[k] & hopInfo) == hopHelper[k]) {
                     int sourceIndex = ((iSegment * num_buckets) + ((iBucket + j + k) % num_buckets))*2;
@@ -129,7 +129,6 @@ public class LongShortHopscotchHashMap {
                     segments[sourceIndex] = 0L;
                     segments[sourceIndex+1] &= VALUE_MASK;
                     segments[sourceIndex+1] |= (long)defaultValue << 48;
-                    //log.info("Hopped {} to {}", j+k, i);
                     return j+k;
                 }
             }
@@ -143,7 +142,6 @@ public class LongShortHopscotchHashMap {
         long[] oldSegments = segments;
         segments = new long[num_segments*num_buckets*2];
         keys = 0;
-//        log.info("Resized to {}", num_segments*num_buckets);
         for (int i = 0; i < oldSegments.length; i += 2) {
             long key = oldSegments[i];
             short value = (short) (oldSegments[i+1] >> 48);
@@ -160,47 +158,15 @@ public class LongShortHopscotchHashMap {
     }
 
     /**
-     * Uses the Jenkins hash
+     * Currently uses the murmur hash 2.0
      * @param key
      * @return
      */
     protected int hash(long key) {
-//        int h = (int)(key ^ (key >>> 32));
-//        h ^= (h >>> 20) ^ (h >>> 12);
-//        return h ^ (h >>> 7) ^ (h >>> 4);
-
-//        int hash, i;
-//        for (hash = i = 0; i < 8; ++i) {
-//            hash += (key >> 0) & 0xff;
-//            hash += (hash << 10);
-//            hash ^= (hash >> 6);
-//        }
-//        hash += (hash << 3);
-//        hash ^= (hash >> 11);
-//        hash += (hash << 15);
-//        return hash;
-//        for (int i = 0; i < 8; ++i) {
-//            keyBytes[i] = (byte) (key >>> (8*i));
-//        }
         keyInts[0] = (int) (key);
         keyInts[1] = (int) (key >>> 32);
-        
-//        return murmur32(keyBytes, 8, 283349958);
+
         return murmur32(keyInts, 283349958);
-//        return mumurGetOpt(keyBytes, 283349958);
-//        return (int) (hasher.hash(keyBytes) & 0xffffffff);
-//        return MurmurHash2.hash(keyBytes, 94624148);
-        //fnv mod
-//        int p = 16777619;
-//        int hash = (int) 2166136261L;
-//        for (byte b : keyBytes)
-//            hash = (hash ^ b) * p;
-//        hash += hash << 13;
-//        hash ^= hash >> 7;
-//        hash += hash << 3;
-//        hash ^= hash >> 17;
-//        hash += hash << 5;
-//        return hash;
     }
 
     public boolean contains(long key) {
@@ -296,17 +262,38 @@ public class LongShortHopscotchHashMap {
         return true;
     }
 
-    public static int murmur32( final int[] data, int seed) {
+    /**
+     * Modified version of the Murmur hash 2.0.  Originally retrieved from
+     * http://d3s.mff.cuni.cz/~holub/sw/javamurmurhash/, modified by David
+     * Erickson. Note this modified version is hard coded to accept two
+     * integers in an array, ie a long converted to two ints.
+     * Original comments below:
+     * 
+     * The murmur hash is a relative fast hash function from
+     * http://murmurhash.googlepages.com/ for platforms with efficient
+     * multiplication.
+     * 
+     * This is a re-implementation of the original C code plus some
+     * additional features.
+     * 
+     * Public domain.
+     * 
+     * @author David Erickson
+     * @author Viliam Holub
+     * @version 1.0.2
+     * @param data
+     * @param seed
+     * @return
+     */
+    public static int murmur32(final int[] data, int seed) {
         // 'm' and 'r' are mixing constants generated offline.
         // They're not really 'magic', they just happen to work well.
         final int m = 0x5bd1e995;
         final int r = 24;
         // Initialize the hash to a random value
         int h = seed^8;
-//        int length4 = 2;
 
         for (int i=0; i<2; i++) {
-            final int i4 = i*4;
             int k = data[i];
             k *= m;
             k ^= k >>> r;
@@ -314,14 +301,6 @@ public class LongShortHopscotchHashMap {
             h *= m;
             h ^= k;
         }
-        
-        // Handle the last few bytes of the input array
-//        switch (length%4) {
-//        case 3: h ^= (data[(length&~3) +2]&0xff) << 16;
-//        case 2: h ^= (data[(length&~3) +1]&0xff) << 8;
-//        case 1: h ^= (data[length&~3]&0xff);
-//                h *= m;
-//        }
 
         h ^= h >>> 13;
         h *= m;
@@ -330,87 +309,17 @@ public class LongShortHopscotchHashMap {
         return h;
     }
 
-    public static int murmur32( final byte[] data, int length, int seed) {
-        // 'm' and 'r' are mixing constants generated offline.
-        // They're not really 'magic', they just happen to work well.
-        final int m = 0x5bd1e995;
-        final int r = 24;
-        // Initialize the hash to a random value
-        int h = seed^length;
-        int length4 = length/4;
-
-        for (int i=0; i<length4; i++) {
-            final int i4 = i*4;
-            int k = (data[i4+0]&0xff) +((data[i4+1]&0xff)<<8)
-                    +((data[i4+2]&0xff)<<16) +((data[i4+3]&0xff)<<24);
-            k *= m;
-            k ^= k >>> r;
-            k *= m;
-            h *= m;
-            h ^= k;
-        }
-        
-        // Handle the last few bytes of the input array
-        switch (length%4) {
-        case 3: h ^= (data[(length&~3) +2]&0xff) << 16;
-        case 2: h ^= (data[(length&~3) +1]&0xff) << 8;
-        case 1: h ^= (data[length&~3]&0xff);
-                h *= m;
-        }
-
-        h ^= h >>> 13;
-        h *= m;
-        h ^= h >>> 15;
-
-        return h;
+    /**
+     * @return the defaultValue
+     */
+    public short getDefaultValue() {
+        return defaultValue;
     }
-    
-    public static int mumurGetOpt(byte[] data, int seed) {
-        int m = 0x5bd1e995;
-        int r = 24;
 
-        int h = seed ^ data.length;
-
-        int len = data.length;
-        int len_4 = len >> 2;
-
-        for (int i = 0; i < len_4; i++) {
-          int i_4 = i << 2;
-          int k = data[i_4 + 3];
-          k = k << 8;
-          k = k | (data[i_4 + 2] & 0xff);
-          k = k << 8;
-          k = k | (data[i_4 + 1] & 0xff);
-          k = k << 8;
-          k = k | (data[i_4 + 0] & 0xff);
-          k *= m;
-          k ^= k >>> r;
-          k *= m;
-          h *= m;
-          h ^= k;
-        }
-
-        int len_m = len_4 << 2;
-        int left = len - len_m;
-
-        if (left != 0) {
-          if (left >= 3) {
-            h ^= (int) data[len - 3] << 16;
-          }
-          if (left >= 2) {
-            h ^= (int) data[len - 2] << 8;
-          }
-          if (left >= 1) {
-            h ^= (int) data[len - 1];
-          }
-
-          h *= m;
-        }
-
-        h ^= h >>> 13;
-        h *= m;
-        h ^= h >>> 15;
-
-        return h;
-      }
+    /**
+     * @param defaultValue the defaultValue to set
+     */
+    public void setDefaultValue(short defaultValue) {
+        this.defaultValue = defaultValue;
+    }
 }
