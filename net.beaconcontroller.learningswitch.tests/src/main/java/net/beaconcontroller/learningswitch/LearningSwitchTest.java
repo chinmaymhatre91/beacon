@@ -4,7 +4,7 @@ import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 import java.util.Arrays;
 
@@ -18,6 +18,7 @@ import net.beaconcontroller.packet.IPacket;
 import net.beaconcontroller.packet.IPv4;
 import net.beaconcontroller.packet.UDP;
 import net.beaconcontroller.test.BeaconTestCase;
+import net.beaconcontroller.util.LongShortHopscotchHashMap;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -26,14 +27,13 @@ import org.openflow.protocol.OFFlowMod;
 import org.openflow.protocol.OFMatch;
 import org.openflow.protocol.OFMessage;
 import org.openflow.protocol.OFPacketIn;
+import org.openflow.protocol.OFPacketIn.OFPacketInReason;
 import org.openflow.protocol.OFPacketOut;
 import org.openflow.protocol.OFPort;
 import org.openflow.protocol.OFType;
-import org.openflow.protocol.OFPacketIn.OFPacketInReason;
 import org.openflow.protocol.action.OFAction;
 import org.openflow.protocol.action.OFActionOutput;
 import org.openflow.protocol.factory.BasicFactory;
-import org.openflow.util.LRULinkedHashMap;
 
 /**
  *
@@ -117,8 +117,7 @@ public class LearningSwitchTest extends BeaconTestCase {
 
         // Verify the MAC table inside the switch
         assertEquals(1, learningSwitch.getMacTables().get(mockSwitch).get(
-                Ethernet.toLong(Ethernet.toMACAddress("00:44:33:22:11:00")))
-                .shortValue());
+                Ethernet.toLong(Ethernet.toMACAddress("00:44:33:22:11:00"))));
     }
 
     @Test
@@ -153,7 +152,7 @@ public class LearningSwitchTest extends BeaconTestCase {
 
         // Populate the MAC table
         learningSwitch.getMacTables().put(mockSwitch,
-                new LRULinkedHashMap<Long, Short>(64001, 64000));
+                new LongShortHopscotchHashMap());
         learningSwitch.getMacTables().get(mockSwitch).put(
                 Ethernet.toLong(Ethernet.toMACAddress("00:11:22:33:44:55")),
                 (short) 2);
@@ -168,7 +167,6 @@ public class LearningSwitchTest extends BeaconTestCase {
 
         // Verify the MAC table inside the switch
         assertEquals(1, learningSwitch.getMacTables().get(mockSwitch).get(
-                Ethernet.toLong(Ethernet.toMACAddress("00:44:33:22:11:00")))
-                .shortValue());
+                Ethernet.toLong(Ethernet.toMACAddress("00:44:33:22:11:00"))));
     }
 }

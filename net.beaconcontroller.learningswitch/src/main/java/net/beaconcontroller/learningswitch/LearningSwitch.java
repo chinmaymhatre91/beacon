@@ -21,7 +21,6 @@ import org.openflow.protocol.OFPort;
 import org.openflow.protocol.OFType;
 import org.openflow.protocol.action.OFAction;
 import org.openflow.protocol.action.OFActionOutput;
-import org.openflow.util.LRULinkedHashMap;
 import org.openflow.util.U16;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,25 +58,10 @@ public class LearningSwitch implements IOFMessageListener, IOFSwitchListener {
         return "switch";
     }
 
-//    /**
-//     * @return the macTables
-//     */
-//    public Map<IOFSwitch, Map<Long, Short>> getMacTables() {
-//        return macTables;
-//    }
-//
-//    /**
-//     * @param macTables the macTables to set
-//     */
-//    public void setMacTables(Map<IOFSwitch, Map<Long, Short>> macTables) {
-//        this.macTables = macTables;
-//    }
-
     public Command receive(IOFSwitch sw, OFMessage msg) {
         OFPacketIn pi = (OFPacketIn) msg;
         LongShortHopscotchHashMap macTable = macTables.get(sw);
         if (macTable == null) {
-//            macTable = new LRULinkedHashMap<Long, Short>(64001, 64000);
             macTable = new LongShortHopscotchHashMap();
             macTables.put(sw, macTable);
         }
@@ -91,7 +75,7 @@ public class LearningSwitch implements IOFMessageListener, IOFSwitchListener {
         int bufferId = pi.getBufferId();
 
         // if the src is not multicast, learn it
-        if ((dlSrc[0] & 0x1) == 0) {
+        if ((dlSrc[0] & 0x1) == 0 && dlSrcLong != 0) {
             if (!macTable.contains(dlSrcLong) ||
                     macTable.get(dlSrcLong) != pi.getInPort()) {
                 macTable.put(dlSrcLong, pi.getInPort());
@@ -99,9 +83,10 @@ public class LearningSwitch implements IOFMessageListener, IOFSwitchListener {
         }
 
         short outPort = -1;
+        long dlDstLong = Ethernet.toLong(dlDst);
         // if the destination is not multicast, look it up
-        if ((dlDst[0] & 0x1) == 0) {
-            outPort = macTable.get(Ethernet.toLong(dlDst));
+        if ((dlDst[0] & 0x1) == 0 && dlDstLong != 0) {
+            outPort = macTable.get(dlDstLong);
         }
 
         // push a flow mod if we know where the destination lives
@@ -174,5 +159,19 @@ public class LearningSwitch implements IOFMessageListener, IOFSwitchListener {
     public void removedSwitch(IOFSwitch sw) {
         if (macTables.remove(sw) != null)
             log.debug("Removed l2 table for {}", sw);
+    }
+
+    /**
+     * @return the macTables
+     */
+    public Map<IOFSwitch, LongShortHopscotchHashMap> getMacTables() {
+        return macTables;
+    }
+
+    /**
+     * @param macTables the macTables to set
+     */
+    public void setMacTables(Map<IOFSwitch, LongShortHopscotchHashMap> macTables) {
+        this.macTables = macTables;
     }
 }

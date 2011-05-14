@@ -19,7 +19,7 @@ public class LongShortHopscotchHashMap {
 
     protected int num_segments = 1;
     protected int segment_mask = num_segments-1;
-    protected int num_buckets = 65536;
+    protected final int num_buckets = 65536;
     protected int bucket_mask = num_buckets-1;
     protected int segment_shift = 16;
     protected long[] segments;
@@ -49,12 +49,12 @@ public class LongShortHopscotchHashMap {
             
         // Does the key already exist? if so swap and return
         int index = ((iSegment * num_buckets) + iBucket)*2;
-        int hop_info = (int) (segments[index+1] & 0xffffffffL);
+        int hop_info = (int) segments[index+1];
         if (segments[index] == key)
             return swap(index, value);
 
         for (int i = 1; i < HOP_RANGE; ++i) {
-            if (((1 << (HOP_RANGE-1-i)) & hop_info) != 0) {
+            if ((hopHelper[i] & hop_info) == hopHelper[i]) {
                 index = ((iSegment * num_buckets) + ((iBucket + i) % num_buckets))*2;
                 if (segments[index] == key) {
                     return swap(index, value);
@@ -66,22 +66,18 @@ public class LongShortHopscotchHashMap {
         int i = 0;
         for (; i < ADD_RANGE; ++i) {
             index = ((iSegment * num_buckets) + ((iBucket + i) % num_buckets))*2;
-//            if (key == 236702)
-//                log.debug("{} {} {}", new Object[] {i, segments[index], toBinary((int) (segments[index+1] & 0xffffffff))});
             if (segments[index] == 0) {
                 break;
             }
         }
-        //log.debug("Closest add slot {} away", i);
         if (i < ADD_RANGE) {
             do {
                 if (i < HOP_RANGE) {
                     index = ((iSegment * num_buckets) + ((iBucket + i) % num_buckets))*2;
-                    long newval = ((long)value & 0xffff) << 48;
                     segments[index] = key;
-                    segments[index+1] = (segments[index+1] & VALUE_MASK) | newval;
+                    segments[index+1] = (segments[index+1] & VALUE_MASK) | (((long)value) << 48);
                     int sourceIndex = ((iSegment * num_buckets) + iBucket)*2;
-                    segments[sourceIndex+1] |= 1L << (HOP_RANGE-1-i);
+                    segments[sourceIndex+1] |= ((long)hopHelper[i]) & 0xffffffffL;
                     //log.debug("Hopinfo {}", toBinary((int) (segments[sourceIndex+1] & HOPINFO_MASK)));
                     ++keys;
 //                    if (((double)keys / (double)(num_segments*num_buckets)) > 0.5) {
@@ -119,15 +115,15 @@ public class LongShortHopscotchHashMap {
             int hopInfo = (int) (segments[hopInfoIndex+1] & 0xffffffff);
             //log.debug("Hopinfo at {} {}", j, toBinary(hopInfo));
             for (int k = 0; j+k < i; ++k) {
-                if (((1 << (HOP_RANGE-1-k)) & hopInfo) != 0) {
+                if ((hopHelper[k] & hopInfo) == hopHelper[k]) {
                     int sourceIndex = ((iSegment * num_buckets) + ((iBucket + j + k) % num_buckets))*2;
                     // copy key
                     segments[targetIndex] = segments[sourceIndex];
                     // copy value
                     segments[targetIndex+1] = (segments[targetIndex+1] & VALUE_MASK) | (segments[sourceIndex+1] & ~VALUE_MASK);
                     // update source hop info
-                    hopInfo |= 1 << (HOP_RANGE-1-(i-j));
-                    hopInfo &= ~(1 << (HOP_RANGE-1-k));
+                    hopInfo |= hopHelper[i-j];
+                    hopInfo &= ~hopHelper[k];
                     segments[hopInfoIndex+1] = (segments[hopInfoIndex+1] & ~HOPINFO_MASK) | ((long)hopInfo & HOPINFO_MASK);
                     // clear host key and value
                     segments[sourceIndex] = 0L;
@@ -142,9 +138,6 @@ public class LongShortHopscotchHashMap {
     }
 
     protected void resize() {
-        // verify before resize
-//        verifySegments();
-
         num_segments *= 2;
         segment_mask = (num_segments-1) << segment_shift;
         long[] oldSegments = segments;
@@ -153,11 +146,10 @@ public class LongShortHopscotchHashMap {
 //        log.info("Resized to {}", num_segments*num_buckets);
         for (int i = 0; i < oldSegments.length; i += 2) {
             long key = oldSegments[i];
-            short value = (short) ((oldSegments[i+1] >> 48) & 0xffff);
+            short value = (short) (oldSegments[i+1] >> 48);
             if (key != 0)
                 put(key, value);
         }
-        int a = 2;
     }
 
     protected short swap(int index, short value) {
@@ -190,8 +182,8 @@ public class LongShortHopscotchHashMap {
 //        for (int i = 0; i < 8; ++i) {
 //            keyBytes[i] = (byte) (key >>> (8*i));
 //        }
-        keyInts[0] = (int) (key & 0xffffffff);
-        keyInts[1] = (int) ((key >>> 32) & 0xffffffff);
+        keyInts[0] = (int) (key);
+        keyInts[1] = (int) (key >>> 32);
         
 //        return murmur32(keyBytes, 8, 283349958);
         return murmur32(keyInts, 283349958);
