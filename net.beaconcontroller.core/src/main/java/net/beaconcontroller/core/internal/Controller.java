@@ -73,11 +73,13 @@ public class Controller implements IBeaconProvider, SelectListener {
     protected Map<String,String> callbackOrdering;
     protected ExecutorService es;
     protected BasicFactory factory;
+    protected boolean immediate = false;
     protected String listenAddress;
     protected int listenPort = 6633;
     protected IOLoop listenerIOLoop;
     protected ServerSocketChannel listenSock;
     protected ConcurrentMap<OFType, List<IOFMessageListener>> messageListeners;
+    protected boolean noDelay = true;
     protected volatile boolean shuttingDown = false;
     protected ConcurrentHashMap<Long, IOFSwitch> switches;
     protected Set<IOFSwitchListener> switchListeners;
@@ -118,7 +120,7 @@ public class Controller implements IBeaconProvider, SelectListener {
             throws IOException {
         SocketChannel sock = listenSock.accept();
         log.info("Switch connected from {}", sock.toString());
-        sock.socket().setTcpNoDelay(true);
+        sock.socket().setTcpNoDelay(this.noDelay);
         sock.configureBlocking(false);
         sock.socket().setSendBufferSize(1024*1024);
         OFSwitchImpl sw = new OFSwitchImpl();
@@ -129,6 +131,7 @@ public class Controller implements IBeaconProvider, SelectListener {
         // register initially with no ops because we need the key to init the stream
         SelectionKey switchKey = sl.registerBlocking(sock, 0, sw);
         OFStream stream = new OFStream(sock, factory, switchKey, sl);
+        stream.setImmediate(this.immediate);
         sw.setInputStream(stream);
         sw.setOutputStream(stream);
         sw.setSocketChannel(sock);
@@ -631,5 +634,22 @@ public class Controller implements IBeaconProvider, SelectListener {
      */
     public void setSwitchRequirementsTimer(boolean switchRequirementsTimer) {
         this.switchRequirementsTimer = switchRequirementsTimer;
+    }
+
+    /**
+     * Configures all switch output streams to attempt to flush on every write
+     * @param immediate the immediate to set
+     */
+    public void setImmediate(boolean immediate) {
+        this.immediate = immediate;
+    }
+
+    /**
+     * Used to set whether newly connected sockets have no delay turned on, 
+     * defaults to true.
+     * @param noDelay the noDelay to set
+     */
+    public void setNoDelay(boolean noDelay) {
+        this.noDelay = noDelay;
     }
 }

@@ -30,6 +30,7 @@ public class OFStream extends OFMessageAsyncStream implements OFMessageSafeOutSt
     protected boolean writeFailure = false;
     protected boolean needsSelect = false;
     protected boolean wrote = false;
+    protected boolean immediate = false;
 
     /**
      * @param sock
@@ -91,12 +92,11 @@ public class OFStream extends OFMessageAsyncStream implements OFMessageSafeOutSt
                 this.writeFailure = true;
                 // TODO should we propogate this failure?
             }
-            wrote = true;
+            if (!immediate)
+                wrote = true;
             outBuf.compact();
             if (outBuf.position() > 0) {
                 needsSelect = true;
-//                // force our select loop to wakeup, queue the remaining write
-//                ioLoop.wakeup();
             }
         }
     }
@@ -157,5 +157,21 @@ public class OFStream extends OFMessageAsyncStream implements OFMessageSafeOutSt
      */
     public IOLoop getIOLoop() {
         return ioLoop;
+    }
+
+    /**
+     * Returns true if this stream is set to flush on every write, false otherwise
+     * @return the immediate
+     */
+    public boolean getImmediate() {
+        return immediate;
+    }
+
+    /**
+     * Sets the stream to flush on every write, similar to fsync for file systems
+     * @param immediate the immediate to set
+     */
+    public void setImmediate(boolean immediate) {
+        this.immediate = immediate;
     }
 }
