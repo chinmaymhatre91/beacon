@@ -124,9 +124,14 @@ public class Controller implements IBeaconProvider, SelectListener {
         sock.configureBlocking(false);
         sock.socket().setSendBufferSize(1024*1024);
         OFSwitchImpl sw = new OFSwitchImpl();
-        // hash this switch into a thread
-        final IOLoop sl = switchIOLoops.get(sock.hashCode()
-                % switchIOLoops.size());
+
+        // Try to even the # of switches per thread
+        // TODO something more intelligent here based on load
+        IOLoop sl = null;
+        for (IOLoop loop : switchIOLoops) {
+            if (sl == null || loop.getStreams().size() < sl.getStreams().size())
+                sl = loop;
+        }
 
         // register initially with no ops because we need the key to init the stream
         SelectionKey switchKey = sl.registerBlocking(sock, 0, sw);
@@ -140,6 +145,7 @@ public class Controller implements IBeaconProvider, SelectListener {
         // register for read
         switchKey.interestOps(SelectionKey.OP_READ);
         sl.addStream(stream);
+        log.info("Added switch {} to IOLoop {}", sw, sl);
         sl.wakeup();
 
         // Send HELLO
@@ -447,7 +453,7 @@ public class Controller implements IBeaconProvider, SelectListener {
         if (threadCount == null)
             threadCount = 1;
 
-        listenerIOLoop = new IOLoop(this);
+        listenerIOLoop = new IOLoop(this, -1);
         // register this connection for accepting
         listenerIOLoop.register(listenSock, SelectionKey.OP_ACCEPT, listenSock);
 
@@ -458,11 +464,12 @@ public class Controller implements IBeaconProvider, SelectListener {
 
         // Launch one select loop per threadCount and start running
         for (int i = 0; i < threadCount; ++i) {
-            final IOLoop sl = new IOLoop(this, 500);
+            final IOLoop sl = new IOLoop(this, 500, i);
             switchIOLoops.add(sl);
             es.execute(new Runnable() {
                 public void run() {
                     try {
+                        log.info("Started thread {} for IOLoop {}", Thread.currentThread(), sl);
                         sl.doLoop();
                     } catch (Exception e) {
                         log.error("Exception during worker loop, terminating thread", e);

@@ -20,6 +20,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 public class IOLoop {
     protected SelectListener callback;
     protected boolean dontStop;
+    protected int id;
     protected Object registrationLock;
     protected int registrationRequests = 0;
     protected Queue<Object[]> registrationQueue;
@@ -28,9 +29,10 @@ public class IOLoop {
     protected long timeout;
     
 
-    public IOLoop(SelectListener cb) throws IOException {
+    public IOLoop(SelectListener cb, int id) throws IOException {
         callback = cb;
         dontStop = true;
+        this.id = id;
         selector = SelectorProvider.provider().openSelector();
         registrationLock = new Object();
         registrationQueue = new ConcurrentLinkedQueue<Object[]>();
@@ -45,9 +47,10 @@ public class IOLoop {
      *        called with
      * @throws IOException
      */
-    public IOLoop(SelectListener cb, long timeout) throws IOException {
+    public IOLoop(SelectListener cb, long timeout, int id) throws IOException {
         callback = cb;
         dontStop = true;
+        this.id = id;
         selector = SelectorProvider.provider().openSelector();
         registrationLock = new Object();
         registrationQueue = new ConcurrentLinkedQueue<Object[]>();
@@ -172,5 +175,20 @@ public class IOLoop {
 
     public void removeStream(OFStream stream) {
         this.streams.remove(stream);
+    }
+
+    /**
+     * @return the streams
+     */
+    public List<OFStream> getStreams() {
+        return streams;
+    }
+
+    /* (non-Javadoc)
+     * @see java.lang.Object#toString()
+     */
+    @Override
+    public String toString() {
+        return "IOLoop [id=" + id + " stream_count="+streams.size()+"]";
     }
 }
