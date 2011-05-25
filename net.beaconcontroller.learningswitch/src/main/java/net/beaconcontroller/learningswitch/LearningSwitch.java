@@ -167,11 +167,4 @@ public class LearningSwitch implements IOFMessageListener, IOFSwitchListener {
     public Map<IOFSwitch, LongShortHopscotchHashMap> getMacTables() {
         return macTables;
     }
-
-    /**
-     * @param macTables the macTables to set
-     */
-    public void setMacTables(Map<IOFSwitch, LongShortHopscotchHashMap> macTables) {
-        this.macTables = macTables;
-    }
 }

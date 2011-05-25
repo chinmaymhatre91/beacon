@@ -1,10 +1,6 @@
 package net.beaconcontroller.core.internal;
 
-import static org.easymock.EasyMock.createMock;
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.replay;
-import static org.easymock.EasyMock.reset;
-import static org.easymock.EasyMock.verify;
+import static org.easymock.EasyMock.*;
 import static org.junit.Assert.assertEquals;
 
 import java.util.ArrayList;
@@ -18,6 +14,7 @@ import java.util.concurrent.TimeUnit;
 import net.beaconcontroller.core.IOFMessageListener;
 import net.beaconcontroller.core.IOFMessageListener.Command;
 import net.beaconcontroller.core.IOFSwitch;
+import net.beaconcontroller.core.io.internal.OFStream;
 import net.beaconcontroller.core.test.MockBeaconProvider;
 import net.beaconcontroller.test.BeaconTestCase;
 
@@ -127,6 +124,9 @@ public class ControllerTest extends BeaconTestCase {
         controller.setCallbackOrdering(callbackOrdering);
 
         IOFSwitch sw = createMock(IOFSwitch.class);
+        OFStream inputStream = createMock(OFStream.class);
+        expect(sw.getInputStream()).andReturn(inputStream).anyTimes();
+        expect(inputStream.getWriteFailure()).andReturn(false).anyTimes();
         expect(sw.getFeaturesReply()).andReturn(new OFFeaturesReply()).anyTimes();
         OFPacketIn pi = new OFPacketIn();
         IOFMessageListener test1 = createMock(IOFMessageListener.class);
@@ -136,19 +136,21 @@ public class ControllerTest extends BeaconTestCase {
         expect(test2.getName()).andReturn("test2").anyTimes();
         expect(test2.receive(sw, pi)).andReturn(Command.CONTINUE);
 
-        replay(test1, test2, sw);
+        replay(test1, test2, sw, inputStream);
         controller.addOFMessageListener(OFType.PACKET_IN, test1);
         controller.addOFMessageListener(OFType.PACKET_IN, test2);
         controller.handleMessages(sw, Arrays.asList(new OFMessage[] {pi}));
-        verify(test1, test2, sw);
+        verify(test1, test2, sw, inputStream);
 
         // verify STOP works
-        reset(test1, test2, sw);
+        reset(test1, test2, sw, inputStream);
+        expect(sw.getInputStream()).andReturn(inputStream).anyTimes();
+        expect(inputStream.getWriteFailure()).andReturn(false).anyTimes();
         expect(test1.receive(sw, pi)).andReturn(Command.STOP);
         expect(sw.getFeaturesReply()).andReturn(new OFFeaturesReply()).anyTimes();
-        replay(test1, test2, sw);
+        replay(test1, test2, sw, inputStream);
         controller.handleMessages(sw, Arrays.asList(new OFMessage[] {pi}));
-        verify(test1, test2, sw);
+        verify(test1, test2, sw, inputStream);
     }
 
     public class FutureFetcher<E> implements Runnable {
