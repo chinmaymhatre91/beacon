@@ -13,7 +13,10 @@
 -Dosgi.noShutdown=true
 -Dequinox.ds.print=true
 -XX:+AggressiveOpts
--Xmx3000M</vmArgs>
+-Xmx3000M
+-XX:InlineSmallCode=16384
+-XX:MaxInlineSize=16384
+-XX:FreqInlineSize=16384</vmArgs>
       <vmArgsMac>-XstartOnFirstThread -Dorg.eclipse.swt.internal.carbon.smallFonts</vmArgsMac>
    </launcherArgs>
 
