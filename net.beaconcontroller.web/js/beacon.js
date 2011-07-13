@@ -63,12 +63,18 @@ function getTabsLength() {
     return $("#center").tabs("length");
 }
 
-function DataTableWrapper(switchId, switchIdEsc) {
+/**
+ * 
+ * @param tableId
+ * @param ajaxURL
+ * @returns {DataTableWrapper}
+ */
+function DataTableWrapper(tableId, ajaxURL) {
     var that = this;
     //$('#table-flows-new').addClass(switchId);
-    $('#table-flows-'+switchIdEsc).addClass(switchId);
+    $('#'+tableId).addClass(tableId);
     //$('#table-flows-new').attr('id', 'table-flows-'+switchIdEsc);
-    this.table = $('#table-flows-'+switchIdEsc).dataTable( {
+    this.table = $('#'+tableId).dataTable( {
         "bJQueryUI": true,
         "bPaginate": false,
         "bRetrieve": true,
@@ -76,28 +82,28 @@ function DataTableWrapper(switchId, switchIdEsc) {
         "bStateSave": true,
         "iCookieDuration": 365*24*60*60, /* 1 year */
         //"oSearch": {"sSearch": "", "bRegex": false, "bSmart": true },
-        "sAjaxSource": '/wm/core/switch/'+switchId+'/flows/dataTable',
-        "sCookiePrefix": "beacon_flows_"+switchId,
+        "sAjaxSource": ajaxURL,
+        "sCookiePrefix": tableId,
         "sDom": '<"H"lfr>t<"F"ip>'
     });
     this.timerId = null;
-    var filterBar = $('#table-flows-'+switchIdEsc+'_filter');
+    var filterBar = $('#'+tableId+'_filter');
 
     // Have to add this by creating elements else the input field gets re-evaluated and loses its event handlers
     var button = document.createElement("button");
-    $(button).attr("id", "button-refresh-"+switchIdEsc);
+    $(button).attr("id", tableId+"-button-refresh");
     $(button).attr("style", "margin-left: 5px;");
     $(button).html("Refresh");
     $(filterBar).append(button);
     button = document.createElement("button");
-    $(button).attr("id", "button-autorefresh-"+switchIdEsc);
+    $(button).attr("id", tableId+"-button-autorefresh");
     $(button).attr("style", "margin-left: 5px;");
     $(button).html("Auto Refresh");
     $(filterBar).append(button);
     //filterBar.html('<button id="button-refresh-'+switchIdEsc+'" style="margin-left: 5px;">Refresh</button>' + filterBar.html());
 //    filterBar.html(filterBar.html() + '<button id="button-autorefresh-'+switchIdEsc+'" style="margin-left: 5px;">Start Auto Refresh</button>');
-    this.buttonRefresh = $('#button-refresh-'+switchIdEsc).button({ icons: {primary:'ui-icon-arrowrefresh-1-e'} });
-    this.buttonAutoRefresh = $('#button-autorefresh-'+switchIdEsc).button({ icons: {primary:'ui-icon-arrowrefresh-1-e'} });
+    this.buttonRefresh = $('#'+tableId+'-button-refresh').button({ icons: {primary:'ui-icon-arrowrefresh-1-e'} });
+    this.buttonAutoRefresh = $('#'+tableId+'-button-autorefresh').button({ icons: {primary:'ui-icon-arrowrefresh-1-e'} });
     this.buttonRefresh.click(function() { that.table.fnReloadAjax(); });
     this.buttonAutoRefresh.click(function () { that.startAutoRefresh(); });
 

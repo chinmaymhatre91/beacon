@@ -312,9 +312,9 @@
               $tabs = $("#center");
 
               // Do we already have flows from this switch in a tab?
-              var selector = "."+switchId.replace(/:/g,"\\:");
+              var selector = ".table-flows-"+switchId.replace(/:/g,"");
               if (switchId != null && $(selector).size() > 0) {
-                  var index = findTabIndex($("."+switchId.replace(/:/g,"\\:"))[0]);
+                  var index = findTabIndex($(selector)[0]);
                   $tabs.tabs("select", index);
                   return false;
               }

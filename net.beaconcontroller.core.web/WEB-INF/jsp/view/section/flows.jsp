@@ -34,6 +34,6 @@
 
 <script type="text/javascript" charset="utf-8">
     (function() {
-        new DataTableWrapper('${switchId}','${switchIdEsc}'); 
+        new DataTableWrapper('table-flows-${switchIdEsc}','/wm/core/switch/${switchId}/flows/dataTable'); 
     })();
 </script>
