@@ -67,14 +67,17 @@ function getTabsLength() {
  * 
  * @param tableId
  * @param ajaxURL
+ * @param tableOptions
  * @returns {DataTableWrapper}
  */
-function DataTableWrapper(tableId, ajaxURL) {
+function DataTableWrapper(tableId, ajaxURL, tableOptions, refreshButton, autoRefreshButton) {
     var that = this;
+    refreshButton = typeof(refreshButton) != 'undefined' ? refreshButton : true;
+    autoRefreshButton = typeof(autoRefreshButton) != 'undefined' ? autoRefreshButton : true;
     //$('#table-flows-new').addClass(switchId);
     $('#'+tableId).addClass(tableId);
     //$('#table-flows-new').attr('id', 'table-flows-'+switchIdEsc);
-    this.table = $('#'+tableId).dataTable( {
+    var options = $.extend({}, {
         "bJQueryUI": true,
         "bPaginate": false,
         "bRetrieve": true,
@@ -85,27 +88,34 @@ function DataTableWrapper(tableId, ajaxURL) {
         "sAjaxSource": ajaxURL,
         "sCookiePrefix": tableId,
         "sDom": '<"H"lfr>t<"F"ip>'
-    });
+    }, tableOptions);
+    this.table = $('#'+tableId).dataTable(options);
     this.timerId = null;
     var filterBar = $('#'+tableId+'_filter');
 
     // Have to add this by creating elements else the input field gets re-evaluated and loses its event handlers
-    var button = document.createElement("button");
-    $(button).attr("id", tableId+"-button-refresh");
-    $(button).attr("style", "margin-left: 5px;");
-    $(button).html("Refresh");
-    $(filterBar).append(button);
-    button = document.createElement("button");
-    $(button).attr("id", tableId+"-button-autorefresh");
-    $(button).attr("style", "margin-left: 5px;");
-    $(button).html("Auto Refresh");
-    $(filterBar).append(button);
-    //filterBar.html('<button id="button-refresh-'+switchIdEsc+'" style="margin-left: 5px;">Refresh</button>' + filterBar.html());
+    var button;
+    if (refreshButton) {
+        button = document.createElement("button");
+        $(button).attr("id", tableId+"-button-refresh");
+        $(button).attr("style", "margin-left: 5px;");
+        $(button).html("Refresh");
+        $(filterBar).append(button);
+        this.buttonRefresh = $('#'+tableId+'-button-refresh').button({ icons: {primary:'ui-icon-arrowrefresh-1-e'} });
+        this.buttonRefresh.click(function() { that.table.fnReloadAjax(); });
+    }
+
+    if (autoRefreshButton) {
+        button = document.createElement("button");
+        $(button).attr("id", tableId+"-button-autorefresh");
+        $(button).attr("style", "margin-left: 5px;");
+        $(button).html("Auto Refresh");
+        $(filterBar).append(button);
+        //filterBar.html('<button id="button-refresh-'+switchIdEsc+'" style="margin-left: 5px;">Refresh</button>' + filterBar.html());
 //    filterBar.html(filterBar.html() + '<button id="button-autorefresh-'+switchIdEsc+'" style="margin-left: 5px;">Start Auto Refresh</button>');
-    this.buttonRefresh = $('#'+tableId+'-button-refresh').button({ icons: {primary:'ui-icon-arrowrefresh-1-e'} });
-    this.buttonAutoRefresh = $('#'+tableId+'-button-autorefresh').button({ icons: {primary:'ui-icon-arrowrefresh-1-e'} });
-    this.buttonRefresh.click(function() { that.table.fnReloadAjax(); });
-    this.buttonAutoRefresh.click(function () { that.startAutoRefresh(); });
+        this.buttonAutoRefresh = $('#'+tableId+'-button-autorefresh').button({ icons: {primary:'ui-icon-arrowrefresh-1-e'} });
+        this.buttonAutoRefresh.click(function () { that.startAutoRefresh(); });
+    }
 
     // Add a close handler to the tab to remove the timer
     var closer = getTabCloseElement(findTabIndex(this.table));
