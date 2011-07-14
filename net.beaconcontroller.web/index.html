@@ -416,13 +416,43 @@
       $(window).load(function() {
          window.allLibrariesLoaded = true;
       });
-
+      $(function() {
+        $("#refreshButton").button({icons: {primary: 'ui-icon-arrowrefresh-1-e'}});
+        $("#refreshButton").css({ width: '28px', 'padding-top': '6px', 'padding-bottom': '6px' });
+        $("#refreshButton").click(function() { 
+          $('#refreshButton').button("option", "disabled", true);
+          $("#refreshReloadTabButton").button("option", "disabled", true);
+          $.get('/wm/core/refreshWeb', function(data) {
+            $('#refreshButton').button("option", "disabled", false);
+            $("#refreshReloadTabButton").button("option", "disabled", false);
+            location.reload();
+          });
+          return false;
+        });
+        $("#refreshReloadTabButton").button({icons: {primary: 'ui-icon-arrowrefresh-1-e'}});
+        $("#refreshReloadTabButton").css({ width: '28px', 'padding-top': '6px', 'padding-bottom': '6px' });
+        $("#refreshReloadTabButton").click(function() { 
+          $('#refreshButton').button("option", "disabled", true);
+          $("#refreshReloadTabButton").button("option", "disabled", true);
+          $.get('/wm/core/refreshWeb', function(data) {
+            $('#refreshButton').button("option", "disabled", false);
+            $("#refreshReloadTabButton").button("option", "disabled", false);
+            //reload the currently open tab
+            var $tabs = getTabs();
+            var selectedIndex = getTabSelectedIndex();
+            $tabs.tabs('load', selectedIndex);
+          });
+          return false;
+        });
+      });
     </script>
   </head>
   <body>
     <div id="header" class="ui-layout-north add-padding">
       <div id="logo" style="position: absolute; left:10px; top:0px">
-        <img src="images/beacon_logo.png" style="position:absolute; top: 0px; left: 4px; z-index: 5;"/>
+        <img src="images/beacon_logo.png" style="z-index: 5; float: left;"/>
+        <a href="" style="float: left;" id="refreshButton"></a>
+        <a href="" style="float: left;" id="refreshReloadTabButton"></a>
       </div>
     </div>
 

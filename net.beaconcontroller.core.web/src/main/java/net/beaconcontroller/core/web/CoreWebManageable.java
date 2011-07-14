@@ -224,6 +224,25 @@ public class CoreWebManageable implements BundleContextAware, IWebManageable {
         return view;
     }
 
+    @RequestMapping("/refreshWeb")
+    @ResponseBody
+    public String refreshWebBundle() {
+        for (Bundle bundle : this.bundleContext.getBundles()) {
+            if (bundle.getSymbolicName().equalsIgnoreCase("net.beaconcontroller.web")) {
+                packageAdmin.refreshPackages(new Bundle[] {bundle});
+                try {
+                    Thread.sleep(1000);
+                    while (bundle.getState() != Bundle.ACTIVE) {
+                        Thread.sleep(100);
+                    }
+                } catch (InterruptedException e) {
+                    log.error("Interupted waiting for refresh", e);
+                }
+            }
+        }
+        return "";
+    }
+
     protected List<OFStatistics> getSwitchStats(OFSRCallback f, String switchId, String statsType) {
         IOFSwitch sw = beaconProvider.getSwitches().get(HexString.toLong(switchId));
         Future<List<OFStatistics>> future;

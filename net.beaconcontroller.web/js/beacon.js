@@ -31,6 +31,14 @@ function findTabIndexByTab(element) {
 }
 
 /**
+ * Return the tabs object
+ * @returns
+ */
+function getTabs() {
+  return $('#center').tabs();
+}
+
+/**
  * Returns the element that is clicked to close the tab
  * @param index
  * @returns
