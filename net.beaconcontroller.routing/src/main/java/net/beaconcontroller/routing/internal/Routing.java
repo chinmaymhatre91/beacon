@@ -126,6 +126,14 @@ public class Routing implements IOFMessageListener, IDeviceManagerAware {
         for (int i = route.getPath().size() - 1; i >= 0; --i) {
             Link link = route.getPath().get(i);
             fm.getMatch().setInputPort(link.getInPort());
+            if (fm.getMatch().getInputPort() == ((OFActionOutput) fm
+                    .getActions().get(0)).getPort()) {
+                log.warn("Stale flows detected from {} to {}, removing existing flows",
+                        HexString.toHexString(fm.getMatch()
+                                .getDataLayerSource()), dstDevice);
+                deviceMoved(dstDevice, null, null, null, null);
+                return;
+            }
             try {
                 out.write(fm);
             } catch (IOException e) {
@@ -221,6 +229,7 @@ public class Routing implements IOFMessageListener, IDeviceManagerAware {
         // NOOP
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public void deviceMoved(Device device, IOFSwitch oldSw, Short oldPort,
             IOFSwitch sw, Short port) {
