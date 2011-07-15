@@ -245,8 +245,8 @@ public class Routing implements IOFMessageListener, IDeviceManagerAware {
         OFMatch match = new OFMatch();
         match.setDataLayerDestination(device.getDataLayerAddress());
         match.setWildcards(OFMatch.OFPFW_ALL ^ OFMatch.OFPFW_DL_DST);
-        OFFlowMod fm = (OFFlowMod) sw.getInputStream().getMessageFactory()
-            .getMessage(OFType.FLOW_MOD);
+        OFFlowMod fm = (OFFlowMod) device.getSw().getInputStream()
+                .getMessageFactory().getMessage(OFType.FLOW_MOD);
         fm.setCommand(OFFlowMod.OFPFC_DELETE)
             .setOutPort((short) OFPort.OFPP_NONE.getValue())
             .setMatch(match)
