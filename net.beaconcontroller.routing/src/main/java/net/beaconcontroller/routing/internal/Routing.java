@@ -168,6 +168,14 @@ public class Routing implements IOFMessageListener, IDeviceManagerAware {
         fm.setMatch(match)
             .setBufferId(bufferId);
 
+        if (fm.getMatch().getInputPort() == ((OFActionOutput) fm
+                .getActions().get(0)).getPort()) {
+            log.warn("Stale flows detected from {} to {}, removing existing flows",
+                    HexString.toHexString(fm.getMatch()
+                            .getDataLayerSource()), dstDevice);
+            deviceMoved(dstDevice, null, null, null, null);
+            return;
+        }
         try {
             out.write(fm);
         } catch (IOException e) {
