@@ -6,6 +6,7 @@ package net.beaconcontroller.topology;
 import net.beaconcontroller.core.IOFSwitch;
 
 import org.openflow.util.HexString;
+import org.openflow.util.U16;
 
 /**
  * @author David Erickson (daviderickson@cs.stanford.edu)
@@ -90,6 +91,6 @@ public class SwitchPortTuple {
     public String toString() {
         return "SwitchPortTuple [id="
                 + ((sw == null) ? "null" : HexString.toHexString(sw.getId()))
-                + ", port=" + ((port == null) ? "null" : (0xff & port)) + "]";
+                + ", port=" + ((port == null) ? "null" : U16.f(port)) + "]";
     }
 }
