@@ -46,4 +46,15 @@ public class IPv4Test {
         byte[] actual = packet.serialize();
         assertTrue(Arrays.equals(expected, actual));
     }
+
+    @Test
+    public void testConversions() {
+        String ip = "255.129.127.1";
+        byte[] addrBytes = IPv4.toIPv4AddressBytes(ip);
+        int addrInt = IPv4.bytesToInt(addrBytes);
+        assertEquals(ip, IPv4.fromIPv4Address(addrInt));
+        addrInt = IPv4.toIPv4Address(ip);
+        addrBytes = IPv4.intToBytes(addrInt);
+        assertEquals(ip, IPv4.fromIPv4Address(addrBytes));
+    }
 }

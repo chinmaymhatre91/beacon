@@ -398,6 +398,44 @@ public class IPv4 extends BasePacket {
     }
 
     /**
+     * Accepts an IPv4 address and returns of string of the form xxx.xxx.xxx.xxx
+     * ie 192.168.0.1
+     * 
+     * @param ipAddress
+     * @return
+     */
+    public static String fromIPv4Address(byte[] ipAddress) {
+        return fromIPv4Address(IPv4.bytesToInt(ipAddress));
+    }
+
+    /**
+     * Accepts a 4 byte IPv4 address and returns the corresponding int
+     * @param addressByteArray
+     * @return the byte[] converted to an int
+     */
+    public static int bytesToInt(byte[] addressByteArray) {
+        int retval = 0;
+        for (int i = 0; i < 4; ++i) {
+            retval |= (addressByteArray[i] & 0xff) << 8*(3-i);
+        }
+        return retval;
+    }
+
+    /**
+     * Accepts an IPv4 address as an integer and returns the corresponding byte
+     * array
+     * @param address
+     * @return
+     */
+    public static byte[] intToBytes(int address) {
+        byte[] bytes = new byte[4];
+        for (int i = 0; i < 4; ++i) {
+            bytes[i] = (byte) (address >>> (8*(3-i)));
+        }
+        return bytes;
+    }
+
+    /**
      * Accepts a collection of IPv4 addresses as integers and returns a single
      * String useful in toString method's containing collections of IP
      * addresses.
