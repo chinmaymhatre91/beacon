@@ -11,6 +11,7 @@
     init-method="startUp" destroy-method="shutDown">
     <property name="beaconProvider" ref="beaconProvider"/>
     <property name="deviceManager" ref="deviceManager"/>
+    <property name="packetOutDirectly" value="true"/>
     <property name="routingEngine" ref="routingEngine"/>
   </bean>
 </beans>

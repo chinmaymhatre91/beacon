@@ -42,6 +42,7 @@ public class Routing implements IOFMessageListener, IDeviceManagerAware {
 
     protected IBeaconProvider beaconProvider;
     protected IDeviceManager deviceManager;
+    protected boolean packetOutDirectly = false;
     protected IRoutingEngine routingEngine;
 
     public void startUp() {
@@ -74,12 +75,23 @@ public class Routing implements IOFMessageListener, IDeviceManagerAware {
                 if (log.isTraceEnabled())
                     log.trace("Pushing route match={} route={} destination={}:{}", new Object[] {match, route, dstDevice.getSw(), dstDevice.getSwPort()});
                 OFMessageInStream in = sw.getInputStream();
-                pushRoute(in.getMessageFactory(), match, route, dstDevice, pi.getBufferId());
 
-                // send the packet if its not buffered
-                if (pi.getBufferId() == 0xffffffff) {
-                    pushPacket(in.getMessageFactory(), sw, match, pi);
+                /**
+                 * Send the packet directly to the destination via a PacketOut if desired, as opposed to pushing the
+                 * route then releasing the packet from the first switch it entered.
+                 */
+                if (packetOutDirectly) {
+                    pushRoute(in.getMessageFactory(), match, route, dstDevice, 0xffffffff);
+                    pushPacketDirect(in.getMessageFactory(), sw, match, pi, dstDevice);
+                } else {
+                    pushRoute(in.getMessageFactory(), match, route, dstDevice, pi.getBufferId());
+
+                    // send the packet if it is not buffered
+                    if (pi.getBufferId() == 0xffffffff) {
+                        pushPacket(in.getMessageFactory(), sw, match, pi);
+                    }
                 }
+
                 return Command.STOP;
             } else {
                 if (log.isTraceEnabled()) {
@@ -206,6 +218,29 @@ public class Routing implements IOFMessageListener, IDeviceManagerAware {
         }
     }
 
+    public void pushPacketDirect(OFMessageFactory factory, IOFSwitch sw, OFMatch match, OFPacketIn pi, Device dstDevice) {
+        OFActionOutput action = new OFActionOutput()
+            .setPort(dstDevice.getSwPort());
+
+        // build packet out
+        OFPacketOut po = new OFPacketOut()
+            .setBufferId(0xffffffff)
+            .setInPort(OFPort.OFPP_NONE.getValue())
+            .setActions(Collections.singletonList((OFAction)action))
+            .setActionsLength((short) OFActionOutput.MINIMUM_LENGTH);
+
+        byte[] packetData = pi.getPacketData();
+        po.setLength(U16.t(OFPacketOut.MINIMUM_LENGTH
+                + po.getActionsLength() + packetData.length));
+        po.setPacketData(packetData);
+
+        try {
+            sw.getOutputStream().write(po);
+        } catch (IOException e) {
+            log.error("Failure writing PacketOut", e);
+        }
+    }
+
     /**
      * @param beaconProvider the beaconProvider to set
      */
@@ -273,5 +308,15 @@ public class Routing implements IOFMessageListener, IDeviceManagerAware {
     public void deviceNetworkAddressRemoved(Device device,
             Set<Integer> networkAddresses, Integer networkAddress) {
         // NOOP
+    }
+
+    /**
+     * When set to true, routing will send the data received via a PacketIn
+     * directly to the destination when it is known. Note for this to work
+     * the PacketIn must contain the full packet.
+     * @param packetOutDirectly the packetOutDirectly to set
+     */
+    public void setPacketOutDirectly(boolean packetOutDirectly) {
+        this.packetOutDirectly = packetOutDirectly;
     }
 }
