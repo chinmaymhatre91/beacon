@@ -422,9 +422,11 @@
         $("#refreshButton").click(function() { 
           $('#refreshButton').button("option", "disabled", true);
           $("#refreshReloadTabButton").button("option", "disabled", true);
+          $("#refreshTabButton").button("option", "disabled", true);
           $.get('/wm/core/refreshWeb', function(data) {
             $('#refreshButton').button("option", "disabled", false);
             $("#refreshReloadTabButton").button("option", "disabled", false);
+            $("#refreshTabButton").button("option", "disabled", false);
             location.reload();
           });
           return false;
@@ -434,14 +436,33 @@
         $("#refreshReloadTabButton").click(function() { 
           $('#refreshButton').button("option", "disabled", true);
           $("#refreshReloadTabButton").button("option", "disabled", true);
+          $("#refreshTabButton").button("option", "disabled", true);
           $.get('/wm/core/refreshWeb', function(data) {
             $('#refreshButton').button("option", "disabled", false);
             $("#refreshReloadTabButton").button("option", "disabled", false);
+            $("#refreshTabButton").button("option", "disabled", false);
             //reload the currently open tab
             var $tabs = getTabs();
             var selectedIndex = getTabSelectedIndex();
             $tabs.tabs('load', selectedIndex);
           });
+          return false;
+        });
+        $("#refreshTabButton").button({icons: {primary: 'ui-icon-arrowrefresh-1-e'}});
+        $("#refreshTabButton").css({ width: '28px', 'padding-top': '6px', 'padding-bottom': '6px' });
+        $("#refreshTabButton").click(function() { 
+          // Disable buttons
+          $('#refreshButton').button("option", "disabled", true);
+          $("#refreshReloadTabButton").button("option", "disabled", true);
+          $("#refreshTabButton").button("option", "disabled", true);
+          // Refresh the tab
+          var $tabs = getTabs();
+          var selectedIndex = getTabSelectedIndex();
+          $tabs.tabs('load', selectedIndex);
+          // Enable buttons
+          $('#refreshButton').button("option", "disabled", false);
+          $("#refreshReloadTabButton").button("option", "disabled", false);
+          $("#refreshTabButton").button("option", "disabled", false);
           return false;
         });
       });
@@ -450,9 +471,14 @@
   <body>
     <div id="header" class="ui-layout-north add-padding">
       <div id="logo" style="position: absolute; left:10px; top:0px">
-        <img src="images/beacon_logo.png" style="z-index: 5; float: left;"/>
-        <a href="" style="float: left;" id="refreshButton"></a>
-        <a href="" style="float: left;" id="refreshReloadTabButton"></a>
+        <img src="images/beacon_logo.png" style="z-index: 0; float: left; padding-right: 10px;"/>
+        <div style="position: relative; float: right; z-index: 10;">
+          <a href="" style="z-index: 11;" id="refreshButton" title="Reload and Refresh Page"></a>
+          <a href="" style="z-index: 11;" id="refreshReloadTabButton" title="Reload and Refresh Tab"></a>
+        </div>
+        <div style="position: relative;">
+          <a href="" style="" id="refreshTabButton" title="Refresh Tab"></a>
+        </div>
       </div>
     </div>
 
