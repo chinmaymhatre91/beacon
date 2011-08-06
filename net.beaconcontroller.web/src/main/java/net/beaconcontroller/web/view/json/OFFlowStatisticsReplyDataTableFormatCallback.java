@@ -39,6 +39,8 @@ public class OFFlowStatisticsReplyDataTableFormatCallback implements
         jg.writeNumber(((double) U32.f(data.getDurationSeconds()))
                 + ((double) data.getDurationNanoseconds()) / 1000000000d);
         jg.writeNumber(U16.f(data.getIdleTimeout()));
+        jg.writeNumber(U16.f(data.getHardTimeout()));
+        jg.writeNumber(U64.f(data.getCookie()));
         StringBuffer outPorts = new StringBuffer();
         for (OFAction action : data.getActions()) {
             if (action instanceof OFActionOutput) {

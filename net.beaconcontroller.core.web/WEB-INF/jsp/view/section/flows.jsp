@@ -24,7 +24,9 @@
           <th>Bytes</th>
           <th>Packets</th>
           <th>Time (s)</th>
-          <th>Timeout (s)</th>
+          <th>Idle TO</th>
+          <th>Hard TO</th>
+          <th>Cookie</th>
           <th>Out Port(s)</th>
         </tr>
       </thead>
