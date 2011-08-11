@@ -35,9 +35,10 @@ public class DataTableJsonView<T> extends AbstractView {
          */
         public void format(T data, JsonGenerator jg) throws IOException;
     }
-    
+
     protected DataTableFormatCallback<T> cb;
     protected Collection<T> data;
+    protected String jsonPFunction;
 
     /**
      * Constructs this view with the corresponding data and formatting callback
@@ -54,6 +55,9 @@ public class DataTableJsonView<T> extends AbstractView {
             HttpServletRequest request, HttpServletResponse response) throws Exception {
         JsonFactory jsonFactory = new JsonFactory(); 
         JsonGenerator jg = jsonFactory.createJsonGenerator(response.getOutputStream(), JsonEncoding.UTF8);
+        if (jsonPFunction != null) {
+            jg.writeRaw(jsonPFunction + "(");
+        }
         jg.writeStartObject();
         jg.writeArrayFieldStart("aaData");
         for (T t : data) {
@@ -63,6 +67,19 @@ public class DataTableJsonView<T> extends AbstractView {
         }
         jg.writeEndArray();
         jg.writeEndObject();
+        if (jsonPFunction != null) {
+            jg.writeRaw(")");
+        }
         jg.close();
+    }
+
+    /**
+     * If the returned JSON data needs to be wrapped in a JSONP compatible
+     * function then this is the name of the function that will wrap the
+     * returned JSON.
+     * @param jsonPFunction the jsonPFunction to set, null for no wrapping
+     */
+    public void setJsonPFunction(String jsonPFunction) {
+        this.jsonPFunction = jsonPFunction;
     }
 }
