@@ -240,6 +240,9 @@ public class DeviceManagerImpl implements IDeviceManager, IOFMessageListener,
         SwitchPortTuple ipt = new SwitchPortTuple(sw, pi.getInPort());
         if (!topology.isInternal(ipt)) {
             if (device != null) {
+                // Update last seen
+                device.setLastSeen(System.currentTimeMillis());
+
                 // Write lock is expensive, check if we have an update first
                 boolean updateNeeded = false;
                 boolean movedLocation = false;
@@ -326,6 +329,7 @@ public class DeviceManagerImpl implements IDeviceManager, IOFMessageListener,
                 device.setDataLayerAddress(match.getDataLayerSource());
                 device.setSw(sw);
                 device.setSwPort(pi.getInPort());
+                device.setLastSeen(System.currentTimeMillis());
                 lock.writeLock().lock();
                 try {
                     this.dataLayerAddressDeviceMap.put(dlAddr, device);

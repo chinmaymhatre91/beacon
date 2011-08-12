@@ -16,6 +16,7 @@ import org.openflow.util.HexString;
  */
 public class Device {
     protected byte[] dataLayerAddress;
+    protected long lastSeen;
     protected Set<Integer> networkAddresses;
     protected IOFSwitch sw;
     protected Short swPort;
@@ -138,6 +139,22 @@ public class Device {
                 ", swId=" + ((sw == null) ? "null" : HexString.toHexString(sw.getId())) +
                 ", swPort=" + ((swPort == null) ? "null" : (0xffff & swPort)) +
                 ", networkAddresses="
-                + IPv4.fromIPv4AddressCollection(networkAddresses) + "]";
+                + IPv4.fromIPv4AddressCollection(networkAddresses) +
+                ", lastSeen=" + lastSeen +
+                "]";
+    }
+
+    /**
+     * @return the lastSeen
+     */
+    public long getLastSeen() {
+        return lastSeen;
+    }
+
+    /**
+     * @param lastSeen the lastSeen to set
+     */
+    public synchronized void setLastSeen(long lastSeen) {
+        this.lastSeen = lastSeen;
     }
 }

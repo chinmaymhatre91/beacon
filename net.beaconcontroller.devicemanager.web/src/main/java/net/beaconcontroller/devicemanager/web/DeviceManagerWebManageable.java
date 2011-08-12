@@ -1,7 +1,10 @@
 package net.beaconcontroller.devicemanager.web;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import net.beaconcontroller.devicemanager.Device;
@@ -56,9 +59,10 @@ public class DeviceManagerWebManageable implements IWebManageable {
     }
 
     @RequestMapping("/overview")
-    public String overview(Map<String, Object> model) {
+    public String overview(Locale locale, Map<String, Object> model) {
         Layout layout = new TwoColumnLayout();
         model.put("layout", layout);
+        SimpleDateFormat sdf = new SimpleDateFormat("MM/dd HH:mm:ss z", locale);
 
         // Listener List Table
         List<String> columnNames = new ArrayList<String>();
@@ -66,6 +70,7 @@ public class DeviceManagerWebManageable implements IWebManageable {
         columnNames = new ArrayList<String>();
         columnNames.add("MAC");
         columnNames.add("IP");
+        columnNames.add("Last Seen");
         columnNames.add("Switch");
         columnNames.add("Port");
         cells = new ArrayList<List<String>>();
@@ -79,6 +84,7 @@ public class DeviceManagerWebManageable implements IWebManageable {
                 sb.append(IPv4.fromIPv4Address(nw) + " ");
             }
             row.add(sb.toString());
+            row.add(sdf.format(new Date(device.getLastSeen())));
             row.add(HexString.toHexString(device.getSw().getId()));
             row.add(((Integer)U16.f(device.getSwPort())).toString());
             cells.add(row);
