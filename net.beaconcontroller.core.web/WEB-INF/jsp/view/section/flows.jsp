@@ -8,7 +8,7 @@
 <div class="section">
   <div class="section-header">${title}</div>
   <div class="section-content">
-    <table id="table-flows-${switchIdEsc}">
+    <table id="table-flows-${switchIdEsc}" class="tableSection">
       <thead>
         <tr>
           <th>In Port</th>
@@ -36,6 +36,9 @@
 
 <script type="text/javascript" charset="utf-8">
     (function() {
-        new DataTableWrapper('table-flows-${switchIdEsc}','/wm/core/switch/${switchId}/flows/dataTable'); 
+        new DataTableWrapper('table-flows-${switchIdEsc}','/wm/core/switch/${switchId}/flows/dataTable',
+            {
+              "bFilter": true
+            }); 
     })();
 </script>

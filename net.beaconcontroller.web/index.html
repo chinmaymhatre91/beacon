@@ -53,11 +53,12 @@
 
       /* set styles for the beacon templating */
       .beaconTable {width: 100%; height: 100%;}
+      .tableSection {width: 100%; height: 100%;}
 
       /* set style fix-up for datatables plug-in */
       .css_right {float:right;}
       .css_left {float:left;}
-      .rowHover {background-color: #ededed;}
+      .tableSection tr.even:hover, .tableSection tr.odd:hover {background-color: #ededed;}
       .DataTables_sort_wrapper { position: relative; padding-right: 20px;}
       .DataTables_sort_wrapper span { float: right; position: absolute; right: 0px; top: 0px;}
     </style>
@@ -175,7 +176,7 @@
           bFilter: false,
           bSort: true,
           bInfo: true,
-          bRetrieve: true, //if this table already exists, retrieve it rather than creating a new one
+          bRetrieve: true //if this table already exists, retrieve it rather than creating a new one
         });
 
         // add hover over rows

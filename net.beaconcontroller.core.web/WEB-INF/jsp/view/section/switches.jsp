@@ -5,7 +5,7 @@
 <div class="section">
   <div class="section-header">${title}</div>
   <div class="section-content">
-    <table class="beaconTable">
+    <table id="table-switches" class="tableSection">
       <thead>
         <tr>
           <th>Id</th>
@@ -38,3 +38,9 @@
     </table>
   </div>
 </div>
+
+<script type="text/javascript" charset="utf-8">
+    (function() {
+        new DataTableWrapper('table-switches', null, {}, false, false); 
+    })();
+</script>

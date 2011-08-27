@@ -1,6 +1,7 @@
 package net.beaconcontroller.topology.web;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -75,7 +76,10 @@ public class TopologyWebManageable implements IWebManageable {
             row.add(lt.getDst().getPort().toString());
             cells.add(row);
         }
-        layout.addSection(new TableSection("Discovered Links", columnNames, cells), TwoColumnLayout.COLUMN1);
+        Map<String,String> tableOptions = new HashMap<String, String>();
+        tableOptions.put("\"bFilter\"", "true");
+        TableSection tableSection = new TableSection("Discovered Links", columnNames, cells, "table-links", tableOptions);
+        layout.addSection(tableSection, TwoColumnLayout.COLUMN1);
 
         return BeaconViewResolver.SIMPLE_VIEW;
     }

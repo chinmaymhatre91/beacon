@@ -3,7 +3,7 @@
 <div class="section">
   <div class="section-header">${title}</div>
   <div class="section-content">
-    <table class="beaconTable">
+    <table id="${tableId}" class="tableSection">
         <thead>
           <tr>
             <c:forEach items="${columnNames}" var="columnName">
@@ -23,3 +23,13 @@
     </table>
   </div>
 </div>
+
+<script type="text/javascript" charset="utf-8">
+    (function() {
+        new DataTableWrapper('${tableId}', null, {
+          <c:forEach items="${tableOptions}" var="opt">
+            <c:out value="${opt.key}" escapeXml="false"/>: <c:out value="${opt.value}" escapeXml="false"/>,
+          </c:forEach>
+        }, false, false); 
+    })();
+</script>

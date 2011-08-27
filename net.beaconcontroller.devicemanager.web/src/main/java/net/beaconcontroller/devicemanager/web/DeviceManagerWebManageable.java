@@ -3,6 +3,7 @@ package net.beaconcontroller.devicemanager.web;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -89,7 +90,10 @@ public class DeviceManagerWebManageable implements IWebManageable {
             row.add(((Integer)U16.f(device.getSwPort())).toString());
             cells.add(row);
         }
-        layout.addSection(new TableSection("Devices", columnNames, cells), TwoColumnLayout.COLUMN1);
+        Map<String,String> tableOptions = new HashMap<String, String>();
+        tableOptions.put("\"bFilter\"", "true");
+        TableSection tableSection = new TableSection("Devices", columnNames, cells, "table-devices", tableOptions);
+        layout.addSection(tableSection, TwoColumnLayout.COLUMN1);
 
         return BeaconViewResolver.SIMPLE_VIEW;
     }

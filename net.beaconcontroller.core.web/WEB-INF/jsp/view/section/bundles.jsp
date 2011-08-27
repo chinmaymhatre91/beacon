@@ -5,7 +5,7 @@
 <div class="section">
   <div class="section-header">${title}</div>
   <div class="section-content">
-    <table class="beaconTable">
+    <table id="table-bundles" class="tableSection">
         <thead>
           <tr>
             <th>Id</th>
@@ -37,3 +37,17 @@
     </table>
   </div>
 </div>
+
+<script type="text/javascript" charset="utf-8">
+    (function() {
+        new DataTableWrapper('table-bundles', null, {
+          "aaSorting": [[2,'asc']],
+          "bFilter": true,
+          "fnInitComplete": function(settings) {
+            if (settings.oLoadedState == null) {
+              this.fnFilter('net.beaconcontroller');
+            }
+          }
+        }, false, false); 
+    })();
+</script>

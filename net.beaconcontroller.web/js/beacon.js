@@ -86,6 +86,7 @@ function DataTableWrapper(tableId, ajaxURL, tableOptions, refreshButton, autoRef
     $('#'+tableId).addClass(tableId);
     //$('#table-flows-new').attr('id', 'table-flows-'+switchIdEsc);
     var options = $.extend({}, {
+        "bFilter": false,
         "bJQueryUI": true,
         "bPaginate": false,
         "bRetrieve": true,
@@ -93,10 +94,12 @@ function DataTableWrapper(tableId, ajaxURL, tableOptions, refreshButton, autoRef
         "bStateSave": true,
         "iCookieDuration": 365*24*60*60, /* 1 year */
         //"oSearch": {"sSearch": "", "bRegex": false, "bSmart": true },
-        "sAjaxSource": ajaxURL,
         "sCookiePrefix": tableId,
         "sDom": '<"H"lfr>t<"F"ip>'
     }, tableOptions);
+    if (ajaxURL != null) {
+      options = $.extend(options, {"sAjaxSource": ajaxURL});
+    }
     this.table = $('#'+tableId).dataTable(options);
     this.timerId = null;
     var filterBar = $('#'+tableId+'_filter');
