@@ -34,12 +34,14 @@ public class OFSwitchImpl implements IOFSwitch {
     protected OFFeaturesReply featuresReply;
     protected OFMessageInStream inStream;
     protected OFMessageSafeOutStream outStream;
+    protected long lastReceivedMessageTime;
     protected SocketChannel socketChannel;
     protected AtomicInteger transactionIdSource;
 
     public OFSwitchImpl() {
         this.attributes = new ConcurrentHashMap<Object, Object>();
         this.connectedSince = new Date();
+        this.lastReceivedMessageTime = this.connectedSince.getTime();
         this.transactionIdSource = new AtomicInteger();
     }
 
@@ -126,5 +128,15 @@ public class OFSwitchImpl implements IOFSwitch {
      */
     public void setBeaconProvider(IBeaconProvider beaconProvider) {
         this.beaconProvider = beaconProvider;
+    }
+
+    @Override
+    public long getLastReceivedMessageTime() {
+        return lastReceivedMessageTime;
+    }
+
+    @Override
+    public void setLastReceivedMessageTime(long epochMS) {
+        this.lastReceivedMessageTime = epochMS;
     }
 }

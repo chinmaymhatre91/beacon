@@ -41,6 +41,7 @@ import net.beaconcontroller.packet.IPv4;
 import org.openflow.io.OFMessageInStream;
 import org.openflow.io.OFMessageOutStream;
 import org.openflow.protocol.OFEchoReply;
+import org.openflow.protocol.OFEchoRequest;
 import org.openflow.protocol.OFError;
 import org.openflow.protocol.OFError.OFBadActionCode;
 import org.openflow.protocol.OFError.OFBadRequestCode;
@@ -68,6 +69,8 @@ import org.slf4j.LoggerFactory;
  */
 public class Controller implements IBeaconProvider, SelectListener {
     protected static Logger log = LoggerFactory.getLogger(Controller.class);
+    protected static int LIVENESS_POLL_INTERVAL = 1000;
+    protected static int LIVENESS_TIMEOUT = 5000;
     protected static String SWITCH_REQUIREMENTS_TIMER_KEY = "SW_REQ_TIMER";
 
     protected Map<String,String> callbackOrdering;
@@ -78,6 +81,7 @@ public class Controller implements IBeaconProvider, SelectListener {
     protected int listenPort = 6633;
     protected IOLoop listenerIOLoop;
     protected ServerSocketChannel listenSock;
+    protected Timer livenessTimer;
     protected ConcurrentMap<OFType, List<IOFMessageListener>> messageListeners;
     protected boolean noDelay = true;
     protected volatile boolean shuttingDown = false;
@@ -170,6 +174,7 @@ public class Controller implements IBeaconProvider, SelectListener {
                     disconnectSwitch(key, sw);
                     return;
                 }
+                sw.setLastReceivedMessageTime(System.currentTimeMillis());
                 handleMessages(sw, msgs);
             }
 
@@ -515,11 +520,22 @@ public class Controller implements IBeaconProvider, SelectListener {
                 }
             }}, "Controller Updates");
         updatesThread.start();
+
+        livenessTimer = new Timer();
+        livenessTimer.scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                checkSwitchLiveness();
+            }
+        }, LIVENESS_POLL_INTERVAL, LIVENESS_POLL_INTERVAL);
+
         log.info("Beacon Core Started");
     }
 
     public void shutDown() throws IOException {
         shuttingDown = true;
+        livenessTimer.cancel();
+
         // shutdown listening for new switches
         listenerIOLoop.shutdown();
         listenSock.socket().close();
@@ -540,6 +556,37 @@ public class Controller implements IBeaconProvider, SelectListener {
         es.shutdown();
         updatesThread.interrupt();
         log.info("Beacon Core Shutdown");
+    }
+
+    /**
+     * Checks all the switches to ensure they are still connected by sending
+     * an echo request and receiving a response.
+     */
+    protected void checkSwitchLiveness() {
+        long now = System.currentTimeMillis();
+        log.trace("Liveness timer running");
+
+        for (Iterator<Entry<Long, IOFSwitch>> it = switches.entrySet()
+                .iterator(); it.hasNext();) {
+            Entry<Long, IOFSwitch> entry = it.next();
+            long last = entry.getValue().getLastReceivedMessageTime();
+            IOFSwitch sw = entry.getValue();
+            SelectionKey key = ((OFStream)sw.getInputStream()).getKey();
+
+            if (now - last >= (2*LIVENESS_TIMEOUT)) {
+                log.info("Switch liveness timeout detected {}ms, disconnecting {}", now - last, sw);
+                disconnectSwitch(key, sw);
+            } else if (now - last >= LIVENESS_TIMEOUT) {
+                // send echo
+                OFEchoRequest echo = new OFEchoRequest();
+                try {
+                    sw.getOutputStream().write(echo);
+                } catch (IOException e) {
+                    log.error("Failure sending liveness probe, disconnecting switch " + sw.toString(), e);
+                    disconnectSwitch(key, sw);
+                }
+            }
+        }
     }
 
     /**

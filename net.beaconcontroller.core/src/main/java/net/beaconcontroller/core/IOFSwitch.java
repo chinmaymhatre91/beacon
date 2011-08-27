@@ -77,6 +77,20 @@ public interface IOFSwitch {
     public int getNextTransactionId();
 
     /**
+     * Returns the time in milliseconds since the epoch of the last received
+     * message from this switch.
+     * @return
+     */
+    public long getLastReceivedMessageTime();
+
+    /**
+     * Sets the time of the most recently received message from this switch in
+     * milliseconds since the epoch
+     * @param epochMS time in milliseconds since the epoch
+     */
+    public void setLastReceivedMessageTime(long epochMS);
+
+    /**
      * Returns a Future object that can be used to retrieve the asynchronous
      * OFStatisticsReply when it is available.
      *
