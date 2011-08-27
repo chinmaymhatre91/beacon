@@ -254,6 +254,9 @@ public class Controller implements IBeaconProvider, SelectListener {
                     reply.setXid(m.getXid());
                     out.write(reply);
                     break;
+                case ECHO_REPLY:
+                    // Already handled by last message timestamp
+                    break;
                 case FEATURES_REPLY:
                     log.debug("Features Reply from {}", sw);
                     sw.setFeaturesReply((OFFeaturesReply) m);
