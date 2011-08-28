@@ -1,3 +1,11 @@
+/**
+ * Copyright 2011, Stanford University. This file is licensed under GPL v2 plus
+ * a special exception, as described in included LICENSE_EXCEPTION.txt.
+ */
+/**
+ * Copyright 2011, Stanford University. This file is licensed under GPL v2 plus
+ * a special exception, as described in included LICENSE_EXCEPTION.txt.
+ */
 package net.beaconcontroller.core;
 
 import java.util.List;

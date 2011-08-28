@@ -1,3 +1,7 @@
+/**
+ * Copyright 2011, Stanford University. This file is licensed under GPL v2 plus
+ * a special exception, as described in included LICENSE_EXCEPTION.txt.
+ */
 package net.beaconcontroller.routing;
 
 import java.util.ArrayList;
