@@ -8,6 +8,7 @@
   http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.0.xsd">
 
   <bean class="org.springframework.beans.factory.config.PropertyOverrideConfigurer">
+    <property name="ignoreInvalidKeys" value="true" />
     <property name="ignoreResourceNotFound" value="true" />
     <property name="locations" value="file:./beacon.properties"/>
   </bean>
