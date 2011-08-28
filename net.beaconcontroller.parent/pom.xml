@@ -6,7 +6,7 @@
     <maven>3.0</maven>
   </prerequisites>
   <groupId>net.beaconcontroller</groupId>
-  <artifactId>parent</artifactId>
+  <artifactId>beacon</artifactId>
   <version>0.1.0-SNAPSHOT</version>
   <packaging>pom</packaging>
   <properties>
@@ -105,6 +105,23 @@
               <ws>gtk</ws>
               <arch>x86_64</arch>
             </environment>
+            <environment>
+              <os>win32</os>
+              <ws>win32</ws>
+              <arch>x86</arch>
+            </environment>
+            <environment>
+              <os>win32</os>
+              <ws>win32</ws>
+              <arch>x86_64</arch>
+            </environment>
+            <!-- TODO won't build properly with Tycho 0.10.0, fix!
+            <environment>
+              <os>macosx</os>
+              <ws>cocoa</ws>
+              <arch>x86_64</arch>
+            </environment>
+             -->
           </environments>
           <target>
             <artifact>

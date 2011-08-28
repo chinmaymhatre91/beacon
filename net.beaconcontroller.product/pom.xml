@@ -3,13 +3,13 @@
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <modelVersion>4.0.0</modelVersion>
   <parent>
-    <artifactId>parent</artifactId>
+    <artifactId>beacon</artifactId>
     <groupId>net.beaconcontroller</groupId>
     <version>0.1.0-SNAPSHOT</version>
     <relativePath>../net.beaconcontroller.parent</relativePath>
   </parent>
   <groupId>net.beaconcontroller</groupId>
-  <artifactId>beacon</artifactId>
+  <artifactId>net.beaconcontroller.product</artifactId>
   <version>0.1.0-SNAPSHOT</version>
   <packaging>eclipse-repository</packaging>
   <build>
