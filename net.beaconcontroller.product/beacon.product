@@ -29,6 +29,7 @@
    <vm>
    </vm>
 
+
    <plugins>
       <plugin id="ch.qos.logback.classic"/>
       <plugin id="ch.qos.logback.core"/>
@@ -129,8 +130,8 @@
       <plugin id="org.springframework.core" autoStart="true" startLevel="0" />
       <plugin id="org.springframework.expression" autoStart="true" startLevel="0" />
       <plugin id="org.springframework.osgi.commons-el.osgi" autoStart="true" startLevel="0" />
-      <plugin id="org.springframework.osgi.core" autoStart="true" startLevel="0" />
-      <plugin id="org.springframework.osgi.extender" autoStart="true" startLevel="0" />
+      <plugin id="org.springframework.osgi.core" autoStart="true" startLevel="1" />
+      <plugin id="org.springframework.osgi.extender" autoStart="true" startLevel="2" />
       <plugin id="org.springframework.osgi.extensions.annotations" autoStart="true" startLevel="0" />
       <plugin id="org.springframework.osgi.io" autoStart="true" startLevel="0" />
       <plugin id="org.springframework.osgi.jasper.osgi" autoStart="true" startLevel="0" />
