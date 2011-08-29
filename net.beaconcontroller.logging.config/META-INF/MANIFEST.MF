@@ -2,7 +2,7 @@ Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: net.beaconcontroller.logging.config
 Bundle-SymbolicName: net.beaconcontroller.logging.config
-Bundle-Version: 0.1.0.qualifier
+Bundle-Version: 1.0.0
 Bundle-Vendor: net.beaconcontroller
 Fragment-Host: ch.qos.logback.classic;bundle-version="0.9.20"
 Bundle-RequiredExecutionEnvironment: JavaSE-1.6
