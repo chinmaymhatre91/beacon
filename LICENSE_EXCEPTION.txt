@@ -1,13 +1,13 @@
-Open Networking Laboratory (On.Lab) FOSS License Exception
+Stanford University FOSS License Exception version 1.0
 
-On.Lab's Free and Open Source Software ("FOSS") License Exception allows
-developers of FOSS applications to combine those applications with the Beacon
-controller. The Beacon controller is made available by On.Lab under version 2
-of the GNU General Public License (GPL), with the following additional
-permission.  Any redistribution of this software must include this additional
-permission.
+This Stanford University Free and Open Source Software ("FOSS") License
+Exception allows developers of FOSS applications to combine those applications
+with the Beacon controller. The Beacon controller is made available by Stanford
+University under version 2 of the GNU General Public License (GPL), with the
+following additional permission. Any redistribution of this software must
+include this additional permission.
 
-On.Lab's FOSS License Exception
+Stanford University FOSS License Exception
 
 1. "Program" means a Beacon controller source code file that contains a copy of
 this FOSS License Exception notice.
@@ -17,7 +17,7 @@ by the Program via the Beacon API and is made available under an Approved FOSS
 License.
 
 3. "Approved FOSS License" means one or more of the following licenses: GNU
-General Public License (version 2 or 3) ("GPL:)", GNU Lesser General Public
+General Public License (version 2 or 3) (GPL), GNU Lesser General Public
 License (version 2 or 3), Apache Software License 1.1, Apache License 2.0,
 Mozilla Public License (version 1.1 or later), Eclipse Public License (version
 1.0), Common Public License (version 1.0), Common Development and Distribution
@@ -27,8 +27,8 @@ License (version 1.0), MIT, BSD, New BSD, or OpenFlow license.
 which one or more of Beacon's functional blocks of software communicates with
 applications.
 
-5.  You may distribute a Foss Application based on the Program provided that: 
-  a.  You abide by the requirements of the GPL for the Program and all
+5. You may distribute a FOSS Application based on the Program provided that: 
+  a. You abide by the requirements of the GPL for the Program and all
 derivative works thereof, excluding any FOSS Application; and 
   b. You distribute any FOSS Application only under an Approved FOSS License.
 
@@ -37,60 +37,59 @@ FAQ
 Q: Why did you create this FOSS License Exception?
 A: We want to encourage developers to write and share applications for our
 Beacon controller, even if they cannot or do not wish to release those
-applications under GPL. 
+applications under GPL.
 
 Q: Why did you limit the list of Approved FOSS Licenses to those above?
 A: We chose the most popular and widely accepted open source licenses.
 
 Q: Can I re-license the Beacon controller under regular GPL without the
-exception?  
-A: No.  You must apply the exception and may not impose any further
-restrictions.  (GPL without the exception would be a further restriction.)  We
+exception?
+A: No. You must apply the exception and may not impose any further
+restrictions. (GPL without the exception would be a further restriction.) We
 want to avoid forking of this code base, and if you distribute your changes
 under GPL without our exception, we would not be able to share your
-modifications with others.  
-
-Q: Can I distribute an open source application that uses Beacon API?  
+modifications with others.
+Q: Can I distribute an open source application that uses Beacon API?u
 A: Yes, as long any application that integrates directly with the Program (for
 instance, that uses the Program in a JAR file) is made available under an
 Approved FOSS License.
 
 Q: Can I distribute a proprietary application that uses the Beacon API?
 A: No, unless your application is an Approved License, it will violate GPL and
-the terms of our exception.  Keep in mind that using the Beacon API requires
+the terms of our exception. Keep in mind that using the Beacon API requires
 the use of some or all of the Program, so you cannot distribute an application
 that uses the Beacon API without complying with our license terms for that
 application.
 
 Q: What if my application is under a more restrictive license like GPL or
-Affero GPL?  Doesn't that convert Beacon to be licensed under my more
+Affero GPL? Doesn't that convert Beacon to be licensed under my more
 restrictive terms?
-A: No.  If you release your application under GPL, you must allow others to
+A: No. If you release your application under GPL, you must allow others to
 redistribute the Beacon controller under GPL with our FOSS exception, or they
-cannot distribute both together.  Nothing gives you the right to change our
-licensing terms.  You cannot distribute our Beacon controller with an
+cannot distribute both together. Nothing gives you the right to change our
+licensing terms. You cannot distribute our Beacon controller with an
 application under an Affero GPL license, because it is not an Approved FOSS
 License.
 
 Q: If I am working for a public institution such as a university, or in a
 non-commercial setting, can I share changes with others for research purposes?
-A:  Unless you comply with the terms of the exception, no.  But if you wish to
-do so, and need to share a proprietary application, please contact us.  We will
-consider requests on a case-by-case basis.  Although we cannot promise we will
+A: Unless you comply with the terms of the exception, no. But if you wish to
+do so, and need to share a proprietary application, please contact us. We will
+consider requests on a case-by-case basis. Although we cannot promise we will
 approve, we want to encourage sharing by research institutions, and understand
 that some may not be able to release their applications under an Approved FOSS
 License.
 
 Q: What if I want to license my application under an open source license that
 is not an Approved FOSS License?
-A:  Please contact us.  We may consider granting you an exception on a
-case-by-case basis.  But we suggest that you consider dual-licensing under an
+A: Please contact us. We may consider granting you an exception on a
+case-by-case basis. But we suggest that you consider dual-licensing under an
 Approved FOSS License.
 
 Q: What if I want to license the Beacon controller under a different open
 source license?
-A:  Please contact us, but we are unlikely to approve such a request unless you
-want to use a license more restrictive than ours.  We may consider granting you
+A: Please contact us, but we are unlikely to approve such a request unless you
+want to use a license more restrictive than ours. We may consider granting you
 an exception on a case-by-case basis.
 
 Q: If I have more questions, whom should I contact?
