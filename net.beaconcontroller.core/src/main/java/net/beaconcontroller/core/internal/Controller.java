@@ -151,14 +151,14 @@ public class Controller implements IBeaconProvider, SelectListener {
         sw.setSocketChannel(sock);
         sw.setBeaconProvider(this);
 
+        // Send HELLO
+        stream.write(factory.getMessage(OFType.HELLO));
+
         // register for read
         switchKey.interestOps(SelectionKey.OP_READ);
         sl.addStream(stream);
         log.info("Added switch {} to IOLoop {}", sw, sl);
         sl.wakeup();
-
-        // Send HELLO
-        stream.write(factory.getMessage(OFType.HELLO));
     }
 
     protected void handleSwitchEvent(SelectionKey key, IOFSwitch sw) {
