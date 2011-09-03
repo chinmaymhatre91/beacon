@@ -9,6 +9,7 @@ package net.beaconcontroller.core.internal;
 
 import java.io.IOException;
 import java.net.InetAddress;
+import java.nio.channels.CancelledKeyException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
@@ -192,6 +193,9 @@ public class Controller implements IBeaconProvider, SelectListener {
                 return;
             }
         } catch (IOException e) {
+            // if we have an exception, disconnect the switch
+            disconnectSwitch(key, sw);
+        } catch (CancelledKeyException e) {
             // if we have an exception, disconnect the switch
             disconnectSwitch(key, sw);
         }
