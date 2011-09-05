@@ -8,4 +8,7 @@
     interface="net.beaconcontroller.core.IBeaconProvider">
   </osgi:service>
 
+  <osgi:service id="FrameworkListener" ref="frameworkListener"
+    interface="org.springframework.osgi.context.event.OsgiBundleApplicationContextListener">
+  </osgi:service>
 </beans>

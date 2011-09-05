@@ -19,6 +19,10 @@
     <property name="listenPort" value="6633"/>
   </bean>
 
+  <bean id="frameworkListener" class="net.beaconcontroller.core.internal.SpringFrameworkListener" init-method="start">
+    <property name="controller" ref="controller"/>
+  </bean>
+
   <util:map id="callbackOrdering">
     <entry key="PACKET_IN" value="topology,devicemanager,routing,switch"/>
   </util:map>

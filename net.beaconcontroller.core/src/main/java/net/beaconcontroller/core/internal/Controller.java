@@ -85,6 +85,7 @@ public class Controller implements IBeaconProvider, SelectListener {
     protected String listenAddress;
     protected int listenPort = 6633;
     protected IOLoop listenerIOLoop;
+    protected volatile boolean listenerStarted = false;
     protected ServerSocketChannel listenSock;
     protected Timer livenessTimer;
     protected ConcurrentMap<OFType, List<IOFMessageListener>> messageListeners;
@@ -447,31 +448,11 @@ public class Controller implements IBeaconProvider, SelectListener {
     }
 
     public void startUp() throws IOException {
-        listenSock = ServerSocketChannel.open();
-        listenSock.socket().setReceiveBufferSize(512*1024);
-        listenSock.configureBlocking(false);
-        if (listenAddress != null) {
-            listenSock.socket().bind(
-                    new java.net.InetSocketAddress(InetAddress
-                            .getByAddress(IPv4
-                                    .toIPv4AddressBytes(listenAddress)),
-                            listenPort));
-        } else {
-            listenSock.socket().bind(new java.net.InetSocketAddress(listenPort));
-        }
-        listenSock.socket().setReuseAddress(true);
-        log.info("Controller listening on {}:{}", listenAddress == null ? "*"
-                : listenAddress, listenPort);
-
         switchIOLoops = new ArrayList<IOLoop>();
         switches = new ConcurrentHashMap<Long, IOFSwitch>();
 
         if (threadCount == null)
             threadCount = 1;
-
-        listenerIOLoop = new IOLoop(this, -1);
-        // register this connection for accepting
-        listenerIOLoop.register(listenSock, SelectionKey.OP_ACCEPT, listenSock);
 
         this.factory = new BasicFactory();
 
@@ -493,17 +474,6 @@ public class Controller implements IBeaconProvider, SelectListener {
                 }}
             );
         }
-
-        es.execute(new Runnable() {
-            public void run() {
-                // Start the listen loop
-                try {
-                    listenerIOLoop.doLoop();
-                } catch (Exception e) {
-                    log.error("Exception during accept loop, terminating thread", e);
-                }
-            }}
-        );
 
         updatesThread = new Thread(new Runnable () {
             @Override
@@ -543,14 +513,72 @@ public class Controller implements IBeaconProvider, SelectListener {
         log.info("Beacon Core Started");
     }
 
+    public synchronized void startListener() {
+        if (listenerStarted)
+            return;
+
+        try {
+            listenSock = ServerSocketChannel.open();
+            listenSock.socket().setReceiveBufferSize(512*1024);
+            listenSock.configureBlocking(false);
+            if (listenAddress != null) {
+                listenSock.socket().bind(
+                        new java.net.InetSocketAddress(InetAddress
+                                .getByAddress(IPv4
+                                        .toIPv4AddressBytes(listenAddress)),
+                                listenPort));
+            } else {
+                listenSock.socket().bind(new java.net.InetSocketAddress(listenPort));
+            }
+            listenSock.socket().setReuseAddress(true);
+
+            listenerIOLoop = new IOLoop(this, -1);
+            // register this connection for accepting
+            listenerIOLoop.register(listenSock, SelectionKey.OP_ACCEPT, listenSock);
+        } catch (IOException e) {
+            log.error("Failure opening listening socket", e);
+            System.exit(-1);
+        }
+
+        log.info("Controller listening on {}:{}", listenAddress == null ? "*"
+                : listenAddress, listenPort);
+
+
+        es.execute(new Runnable() {
+            public void run() {
+                // Start the listen loop
+                try {
+                    listenerIOLoop.doLoop();
+                } catch (Exception e) {
+                    log.error("Exception during accept loop, terminating thread", e);
+                }
+            }}
+        );
+
+        listenerStarted = true;
+    }
+
+    public synchronized void stopListener() {
+        if (!listenerStarted)
+            return;
+
+        // shutdown listening for new switches
+        try {
+            listenerIOLoop.shutdown();
+            listenSock.socket().close();
+            listenSock.close();
+        } catch (IOException e) {
+            log.error("Failure shutting down listening socket", e);
+        } finally {
+            listenerStarted = false;
+        }
+    }
+
     public void shutDown() throws IOException {
         shuttingDown = true;
         livenessTimer.cancel();
 
-        // shutdown listening for new switches
-        listenerIOLoop.shutdown();
-        listenSock.socket().close();
-        listenSock.close();
+        stopListener();
 
         // close the switch connections
         for (Iterator<Entry<Long, IOFSwitch>> it = switches.entrySet().iterator(); it.hasNext();) {
