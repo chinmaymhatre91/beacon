@@ -126,10 +126,14 @@ public class SpringFrameworkListener
         for (Bundle bundle : context.getBundles()) {
             // Don't wait on fragments
             if (bundle.getHeaders().get("fragment-host") == null) {
-                String[] configurations = scanner.getConfigurations(bundle);
-                // If this bundle has Spring configurations put it in our wait list
-                if (configurations.length > 0) {
-                    springBundles.put(bundle, false);
+                int state = bundle.getState();
+                // Only include bundles that intend to start
+                if (state == Bundle.STARTING || state == Bundle.ACTIVE) {
+                    String[] configurations = scanner.getConfigurations(bundle);
+                    // If this bundle has Spring configurations put it in our wait list
+                    if (configurations.length > 0) {
+                        springBundles.put(bundle, false);
+                    }
                 }
             }
         }
