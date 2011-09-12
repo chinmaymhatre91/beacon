@@ -2,7 +2,6 @@
 target
 **/bin
 dist
-dist*
 **/logs
 products
 repository
