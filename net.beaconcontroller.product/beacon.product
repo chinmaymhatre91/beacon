@@ -15,6 +15,7 @@
 -Dosgi.noShutdown=true
 -Dequinox.ds.print=true</vmArgs>
       <vmArgsMac>-XstartOnFirstThread -Dorg.eclipse.swt.internal.carbon.smallFonts</vmArgsMac>
+      <vmArgsWin>-Djetty.host=127.0.0.1</vmArgsWin>
    </launcherArgs>
 
    <windowImages/>
