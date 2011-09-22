@@ -20,6 +20,8 @@ import org.openflow.io.OFMessageInStream;
 import org.openflow.protocol.OFFeaturesReply;
 import org.openflow.protocol.OFStatisticsRequest;
 import org.openflow.protocol.OFType;
+import org.openflow.protocol.queue.OFPacketQueue;
+import org.openflow.protocol.statistics.OFDescriptionStatistics;
 import org.openflow.protocol.statistics.OFStatistics;
 import org.openflow.util.HexString;
 import org.slf4j.Logger;
@@ -34,6 +36,7 @@ public class OFSwitchImpl implements IOFSwitchExt {
     protected ConcurrentMap<Object, Object> attributes;
     protected IBeaconProvider beaconProvider;
     protected Date connectedSince;
+    protected OFDescriptionStatistics descriptionStatistics;
     protected OFFeaturesReply featuresReply;
     protected OFMessageInStream inStream;
     protected OFMessageSafeOutStream outStream;
@@ -155,5 +158,21 @@ public class OFSwitchImpl implements IOFSwitchExt {
             log.debug("Switch {} transitioning from state {} to {}",
                     new Object[] { this, this.state, state });
         this.state = state;
+    }
+
+    /**
+     * @return the descriptionStatistics
+     */
+    @Override
+    public OFDescriptionStatistics getDescriptionStatistics() {
+        return descriptionStatistics;
+    }
+
+    /**
+     * @param descriptionStatistics the descriptionStatistics to set
+     */
+    public void setDescriptionStatistics(
+            OFDescriptionStatistics descriptionStatistics) {
+        this.descriptionStatistics = descriptionStatistics;
     }
 }
