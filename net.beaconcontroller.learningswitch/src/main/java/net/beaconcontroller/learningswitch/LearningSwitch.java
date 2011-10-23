@@ -25,7 +25,6 @@ import org.openflow.protocol.OFPort;
 import org.openflow.protocol.OFType;
 import org.openflow.protocol.action.OFAction;
 import org.openflow.protocol.action.OFActionOutput;
-import org.openflow.util.U16;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -71,8 +70,7 @@ public class LearningSwitch implements IOFMessageListener, IOFSwitchListener {
         }
 
         // Build the Match
-        OFMatch match = new OFMatch();
-        match.loadFromPacket(pi.getPacketData(), pi.getInPort());
+        OFMatch match = OFMatch.load(pi.getPacketData(), pi.getInPort());
         byte[] dlDst = match.getDataLayerDestination();
         byte[] dlSrc = match.getDataLayerSource();
         long dlSrcLong = Ethernet.toLong(dlSrc);
@@ -102,18 +100,15 @@ public class LearningSwitch implements IOFMessageListener, IOFSwitchListener {
             match.setInputPort(pi.getInPort());
 
             // build action
-            OFActionOutput action = new OFActionOutput()
-                .setPort(outPort);
+            OFActionOutput action = new OFActionOutput(outPort);
 
             // build flow mod
             OFFlowMod fm = (OFFlowMod) sw.getInputStream().getMessageFactory()
                     .getMessage(OFType.FLOW_MOD);
             fm.setBufferId(bufferId)
                 .setIdleTimeout((short) 5)
-                .setOutPort((short) OFPort.OFPP_NONE.getValue())
                 .setMatch(match)
-                .setActions(Collections.singletonList((OFAction)action))
-                .setLength(U16.t(OFFlowMod.MINIMUM_LENGTH+OFActionOutput.MINIMUM_LENGTH));
+                .setActions(Collections.singletonList((OFAction)action));
             try {
                 sw.getOutputStream().write(fm);
             } catch (IOException e) {
@@ -124,26 +119,19 @@ public class LearningSwitch implements IOFMessageListener, IOFSwitchListener {
         // Send a packet out
         if (outPort == -1 || pi.getBufferId() == 0xffffffff) {
             // build action
-            OFActionOutput action = new OFActionOutput()
-                .setPort((short) ((outPort == -1) ? OFPort.OFPP_FLOOD
-                    .getValue() : outPort));
+            OFActionOutput action = new OFActionOutput(
+                    (short) ((outPort == -1) ? OFPort.OFPP_FLOOD.getValue()
+                            : outPort));
 
             // build packet out
             OFPacketOut po = new OFPacketOut()
                 .setBufferId(bufferId)
                 .setInPort(pi.getInPort())
-                .setActions(Collections.singletonList((OFAction)action))
-                .setActionsLength((short) OFActionOutput.MINIMUM_LENGTH);
+                .setActions(Collections.singletonList((OFAction)action));
 
             // set data if it is included in the packetin
             if (bufferId == 0xffffffff) {
-                byte[] packetData = pi.getPacketData();
-                po.setLength(U16.t(OFPacketOut.MINIMUM_LENGTH
-                        + po.getActionsLength() + packetData.length));
-                po.setPacketData(packetData);
-            } else {
-                po.setLength(U16.t(OFPacketOut.MINIMUM_LENGTH
-                        + po.getActionsLength()));
+                po.setPacketData(pi.getPacketData());
             }
 
             try {
