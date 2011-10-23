@@ -155,11 +155,7 @@ public class Routing implements IOFMessageListener, IDeviceManagerAware {
             } catch (IOException e) {
                 log.error("Failure writing flow mod", e);
             }
-            try {
-                fm = fm.clone();
-            } catch (CloneNotSupportedException e) {
-                log.error("Failure cloning flow mod", e);
-            }
+            fm = fm.clone();
 
             // setup for the next loop iteration
             ((OFActionOutput)fm.getActions().get(0)).setPort(link.getOutPort());
