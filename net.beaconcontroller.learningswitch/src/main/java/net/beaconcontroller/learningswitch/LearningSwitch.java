@@ -71,10 +71,13 @@ public class LearningSwitch implements IOFMessageListener, IOFSwitchListener {
 
         // Build the Match
         OFMatch match = OFMatch.load(pi.getPacketData(), pi.getInPort());
+
         byte[] dlDst = match.getDataLayerDestination();
         byte[] dlSrc = match.getDataLayerSource();
+        long dlDstLong = Ethernet.toLong(dlDst);
         long dlSrcLong = Ethernet.toLong(dlSrc);
         int bufferId = pi.getBufferId();
+        short outPort = -1;
 
         // if the src is not multicast, learn it
         if ((dlSrc[0] & 0x1) == 0 && dlSrcLong != 0) {
@@ -84,8 +87,6 @@ public class LearningSwitch implements IOFMessageListener, IOFSwitchListener {
             }
         }
 
-        short outPort = -1;
-        long dlDstLong = Ethernet.toLong(dlDst);
         // if the destination is not multicast, look it up
         if ((dlDst[0] & 0x1) == 0 && dlDstLong != 0) {
             outPort = macTable.get(dlDstLong);
@@ -93,40 +94,34 @@ public class LearningSwitch implements IOFMessageListener, IOFSwitchListener {
 
         // push a flow mod if we know where the destination lives
         if (outPort != -1) {
+            // don't send out the port it came in
             if (outPort == pi.getInPort()) {
-                // don't send out the port it came in
                 return Command.CONTINUE;
             }
-            match.setInputPort(pi.getInPort());
 
-            // build action
             OFActionOutput action = new OFActionOutput(outPort);
-
-            // build flow mod
-            OFFlowMod fm = (OFFlowMod) sw.getInputStream().getMessageFactory()
-                    .getMessage(OFType.FLOW_MOD);
-            fm.setBufferId(bufferId)
+            OFFlowMod fm = new OFFlowMod()
+                .setBufferId(bufferId)
                 .setIdleTimeout((short) 5)
                 .setMatch(match)
                 .setActions(Collections.singletonList((OFAction)action));
             sw.getOutputStream().write(fm);
         }
 
-        // Send a packet out
-        if (outPort == -1 || pi.getBufferId() == 0xffffffff) {
-            // build action
+        // If the destination is flood or the Packet In was not buffered
+        // then send a Packet Out.
+        if (outPort == -1 || bufferId == OFPacketOut.BUFFER_ID_NONE) {
             OFActionOutput action = new OFActionOutput(
                     (short) ((outPort == -1) ? OFPort.OFPP_FLOOD.getValue()
                             : outPort));
 
-            // build packet out
             OFPacketOut po = new OFPacketOut()
                 .setBufferId(bufferId)
                 .setInPort(pi.getInPort())
                 .setActions(Collections.singletonList((OFAction)action));
 
-            // set data if it is included in the packetin
-            if (bufferId == 0xffffffff) {
+            // Set the packet data if it is included in the Packet In
+            if (bufferId == OFPacketOut.BUFFER_ID_NONE) {
                 po.setPacketData(pi.getPacketData());
             }
 
