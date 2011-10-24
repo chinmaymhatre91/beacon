@@ -4,6 +4,7 @@
  */
 package net.beaconcontroller.core.test;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -19,12 +20,16 @@ import net.beaconcontroller.core.IOFMessageListener.Command;
 
 import org.openflow.protocol.OFMessage;
 import org.openflow.protocol.OFType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *
  * @author David Erickson (daviderickson@cs.stanford.edu)
  */
 public class MockBeaconProvider implements IBeaconProvider {
+    protected Logger log = LoggerFactory.getLogger(MockBeaconProvider.class);
+
     protected Map<OFType, List<IOFMessageListener>> listeners;
     protected List<IOFSwitchListener> switchListeners;
     protected Map<Long, IOFSwitch> switches;
@@ -88,7 +93,11 @@ public class MockBeaconProvider implements IBeaconProvider {
             Command result = Command.CONTINUE;
             Iterator<IOFMessageListener> it = listeners.iterator();
             while (it.hasNext() && !Command.STOP.equals(result)) {
-                result = it.next().receive(sw, msg);
+                try {
+                    result = it.next().receive(sw, msg);
+                } catch (IOException e) {
+                    log.error("Failure processing handler", e);
+                }
             }
         }
     }

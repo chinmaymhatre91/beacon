@@ -7,6 +7,7 @@
  */
 package net.beaconcontroller.devicemanager.internal;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -218,7 +219,7 @@ public class DeviceManagerImpl implements IDeviceManager, IOFMessageListener,
     }
 
     @Override
-    public Command receive(IOFSwitch sw, OFMessage msg) {
+    public Command receive(IOFSwitch sw, OFMessage msg) throws IOException {
         if (msg instanceof OFPortStatus) {
             return handlePortStatus(sw, (OFPortStatus) msg);
         }

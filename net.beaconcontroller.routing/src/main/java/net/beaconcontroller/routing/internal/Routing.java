@@ -63,7 +63,7 @@ public class Routing implements IOFMessageListener, IDeviceManagerAware {
     }
 
     @Override
-    public Command receive(IOFSwitch sw, OFMessage msg) {
+    public Command receive(IOFSwitch sw, OFMessage msg) throws IOException {
         OFPacketIn pi = (OFPacketIn) msg;
         OFMatch match = new OFMatch();
         match.loadFromPacket(pi.getPacketData(), pi.getInPort());

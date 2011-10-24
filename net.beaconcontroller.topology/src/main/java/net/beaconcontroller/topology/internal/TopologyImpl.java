@@ -263,7 +263,7 @@ public class TopologyImpl implements IOFMessageListener, IOFSwitchListener, ITop
     }
 
     @Override
-    public Command receive(IOFSwitch sw, OFMessage msg) {
+    public Command receive(IOFSwitch sw, OFMessage msg) throws IOException {
         if (msg instanceof OFPacketIn)
             return handlePacketIn(sw, (OFPacketIn) msg);
         else

@@ -4,6 +4,7 @@
  */
 package net.beaconcontroller.core.internal;
 
+import java.io.IOException;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.CountDownLatch;
@@ -92,7 +93,7 @@ public abstract class OFMessageFuture<T,V> implements Future<V>, IOFMessageListe
     }
 
     @Override
-    public Command receive(IOFSwitch sw, OFMessage msg) {
+    public Command receive(IOFSwitch sw, OFMessage msg) throws IOException {
         if (transactionId == msg.getXid()) {
             handleReply(sw, msg);
             if (isFinished()) {

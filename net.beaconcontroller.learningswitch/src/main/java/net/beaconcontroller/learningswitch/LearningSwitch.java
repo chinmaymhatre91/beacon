@@ -61,7 +61,7 @@ public class LearningSwitch implements IOFMessageListener, IOFSwitchListener {
         return "switch";
     }
 
-    public Command receive(IOFSwitch sw, OFMessage msg) {
+    public Command receive(IOFSwitch sw, OFMessage msg) throws IOException {
         OFPacketIn pi = (OFPacketIn) msg;
         LongShortHopscotchHashMap macTable = macTables.get(sw);
         if (macTable == null) {
@@ -109,11 +109,7 @@ public class LearningSwitch implements IOFMessageListener, IOFSwitchListener {
                 .setIdleTimeout((short) 5)
                 .setMatch(match)
                 .setActions(Collections.singletonList((OFAction)action));
-            try {
-                sw.getOutputStream().write(fm);
-            } catch (IOException e) {
-                log.error("Failure writing FlowMod", e);
-            }
+            sw.getOutputStream().write(fm);
         }
 
         // Send a packet out
@@ -134,11 +130,7 @@ public class LearningSwitch implements IOFMessageListener, IOFSwitchListener {
                 po.setPacketData(pi.getPacketData());
             }
 
-            try {
-                sw.getOutputStream().write(po);
-            } catch (IOException e) {
-                log.error("Failure writing PacketOut", e);
-            }
+            sw.getOutputStream().write(po);
         }
         return Command.CONTINUE;
     }
