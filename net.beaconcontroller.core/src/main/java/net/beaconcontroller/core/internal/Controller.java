@@ -16,6 +16,7 @@ import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -79,6 +80,7 @@ public class Controller implements IBeaconProvider, SelectListener {
     protected static String SWITCH_REQUIREMENTS_TIMER_KEY = "SW_REQ_TIMER";
 
     protected Map<String,String> callbackOrdering;
+    protected boolean deletePreExistingFlows = true;
     protected ExecutorService es;
     protected BasicFactory factory;
     protected boolean immediate = false;
@@ -93,7 +95,6 @@ public class Controller implements IBeaconProvider, SelectListener {
     protected volatile boolean shuttingDown = false;
     protected ConcurrentHashMap<Long, IOFSwitchExt> switches;
     protected Set<IOFSwitchListener> switchListeners;
-    protected boolean switchRequirementsTimer = true;
     protected List<IOLoop> switchIOLoops;
     protected Integer threadCount;
     protected BlockingQueue<Update> updates;
@@ -151,6 +152,7 @@ public class Controller implements IBeaconProvider, SelectListener {
         sw.setOutputStream(stream);
         sw.setSocketChannel(sock);
         sw.setBeaconProvider(this);
+        sw.transitionToState(SwitchState.CONNECTED);
 
         // Send HELLO
         stream.write(factory.getMessage(OFType.HELLO));
@@ -209,7 +211,6 @@ public class Controller implements IBeaconProvider, SelectListener {
         key.cancel();
         OFStream stream = (OFStream) sw.getInputStream();
         stream.getIOLoop().removeStream(stream);
-        stopSwitchRequirementsTimer(sw);
         // only remove if we have a features reply (DPID)
         if (sw.getFeaturesReply() != null)
             removeSwitch(sw);
@@ -233,27 +234,8 @@ public class Controller implements IBeaconProvider, SelectListener {
             if (((OFStream)sw.getInputStream()).getWriteFailure()) {
                 break;
             }
+            // Always handle ECHO REQUESTS, regardless of state
             switch (m.getType()) {
-                case HELLO:
-                    log.debug("HELLO from {}", sw);
-                    // Send initial Features Request
-                    sw.getOutputStream().write(factory.getMessage(OFType.FEATURES_REQUEST));
-
-                    // Delete all pre-existing flows
-                    OFMatch match = new OFMatch().setWildcards(OFMatch.OFPFW_ALL);
-                    OFMessage fm = ((OFFlowMod) sw.getInputStream().getMessageFactory()
-                        .getMessage(OFType.FLOW_MOD))
-                        .setMatch(match)
-                        .setCommand(OFFlowMod.OFPFC_DELETE)
-                        .setOutPort(OFPort.OFPP_NONE)
-                        .setLength(U16.t(OFFlowMod.MINIMUM_LENGTH));
-                    sw.getOutputStream().write(fm);
-
-                    // Start required message timer
-                    if (switchRequirementsTimer) {
-                        startSwitchRequirementsTimer(sw);
-                    }
-                    break;
                 case ECHO_REQUEST:
                     OFMessageInStream in = sw.getInputStream();
                     OFMessageOutStream out = sw.getOutputStream();
@@ -264,56 +246,92 @@ public class Controller implements IBeaconProvider, SelectListener {
                     out.write(reply);
                     break;
                 case ECHO_REPLY:
-                    // Already handled by last message timestamp
-                    break;
-                case FEATURES_REPLY:
-                    log.debug("Features Reply from {}", sw);
-                    sw.setFeaturesReply((OFFeaturesReply) m);
-                    addSwitch(sw);
-                    break;
-                case GET_CONFIG_REPLY:
-                    OFGetConfigReply cr = (OFGetConfigReply) m;
-                    if (cr.getMissSendLength() == (short)0xffff) {
-                        log.debug("Config Reply from {} confirms miss length set to 0xffff", sw);
-                        stopSwitchRequirementsTimer(sw);
-                    }
+                    // *Note, ECHO REPLIES need no handling due to last message timestamp
                     break;
                 case ERROR:
-                    OFError error = (OFError) m;
-                    logError(sw, error);
-                    break;
+                    logError(sw, (OFError)m);
+                    // fall through intentionally so error can be listened for
                 default:
-                    // Don't pass along messages until we have the features reply
-                    if (sw.getFeaturesReply() == null) {
-                        log.warn("Message type {} received from switch " +
-                            "{} before receiving a features reply.", m.getType(), sw);
-                        break;
-                    }
-                    List<IOFMessageListener> listeners = messageListeners
+                    switch (sw.getState()) {
+                        case CONNECTED:
+                            if (m.getType() == OFType.HELLO) {
+                                log.debug("HELLO from {}", sw);
+                                sw.transitionToState(SwitchState.HELLO_RECEIVED);
+                                // Send initial Features Request
+                                sw.getOutputStream().write(factory.getMessage(OFType.FEATURES_REQUEST));
+                            }
+                            break;
+                        case HELLO_RECEIVED:
+                            if (m.getType() == OFType.FEATURES_REPLY) {
+                                log.debug("Features Reply from {}", sw);
+                                sw.setFeaturesReply((OFFeaturesReply) m);
+                                sw.transitionToState(SwitchState.FEATURES_REPLY_RECEIVED);
+                                // Set config and request to receive the config
+                                OFSetConfig config = (OFSetConfig) factory
+                                        .getMessage(OFType.SET_CONFIG);
+                                config.setMissSendLength((short) 0xffff)
+                                .setLengthU(OFSetConfig.MINIMUM_LENGTH);
+                                sw.getOutputStream().write(config);
+                                sw.getOutputStream().write(factory.getMessage(OFType.BARRIER_REQUEST));
+                                sw.getOutputStream().write(factory.getMessage(OFType.GET_CONFIG_REQUEST));
+                            }
+                            break;
+                        case FEATURES_REPLY_RECEIVED:
+                            if (m.getType() == OFType.GET_CONFIG_REPLY) {
+                                OFGetConfigReply cr = (OFGetConfigReply) m;
+                                if (cr.getMissSendLength() == (short)0xffff) {
+                                    log.debug("Config Reply from {} confirms miss length set to 0xffff", sw);
+                                    sw.transitionToState(SwitchState.ACTIVE);
+
+                                    // Delete all pre-existing flows
+                                    if (deletePreExistingFlows) {
+                                        OFMatch match = new OFMatch().setWildcards(OFMatch.OFPFW_ALL);
+                                        OFMessage fm = ((OFFlowMod) sw.getInputStream().getMessageFactory()
+                                                .getMessage(OFType.FLOW_MOD))
+                                                .setMatch(match)
+                                                .setCommand(OFFlowMod.OFPFC_DELETE)
+                                                .setOutPort(OFPort.OFPP_NONE)
+                                                .setLength(U16.t(OFFlowMod.MINIMUM_LENGTH));
+                                        sw.getOutputStream().write(fm);
+                                        sw.getOutputStream().write(factory.getMessage(OFType.BARRIER_REQUEST));
+                                    }
+
+                                    // Add switch to active list
+                                    addSwitch(sw);
+                                } else {
+                                    log.error("Switch {} refused to set miss send length to 0xffff, disconnecting", sw);
+                                    disconnectSwitch(((OFStream)sw.getInputStream()).getKey(), sw);
+                                    return;
+                                }
+                            }
+                            break;
+                        case ACTIVE:
+                            List<IOFMessageListener> listeners = messageListeners
                             .get(m.getType());
-                    if (listeners != null) {
-                        for (IOFMessageListener listener : listeners) {
-                            try {
-                                if (listener instanceof IOFSwitchFilter) {
-                                    if (!((IOFSwitchFilter)listener).isInterested(sw)) {
-                                        break;
+                            if (listeners != null) {
+                                for (IOFMessageListener listener : listeners) {
+                                    try {
+                                        if (listener instanceof IOFSwitchFilter) {
+                                            if (!((IOFSwitchFilter)listener).isInterested(sw)) {
+                                                break;
+                                            }
+                                        }
+                                        if (Command.STOP.equals(listener.receive(sw, m))) {
+                                            break;
+                                        }
+                                    } catch (Exception e) {
+                                        log.error("Failure calling listener ["+
+                                                listener.toString()+
+                                                "] with message ["+m.toString()+
+                                                "]", e);
                                     }
                                 }
-                                if (Command.STOP.equals(listener.receive(sw, m))) {
-                                    break;
-                                }
-                            } catch (Exception e) {
-                                log.error("Failure calling listener ["+
-                                        listener.toString()+
-                                        "] with message ["+m.toString()+
-                                        "]", e);
+                            } else {
+                                log.warn("Unhandled OF Message: {} from {}", m, sw);
                             }
-                        }
-                    } else {
-                        log.error("Unhandled OF Message: {} from {}", m, sw);
-                    }
-                    break;
-            }
+                            break;
+                    } // end switch(sw.getState())
+            } // end switch(m.getType())
         }
     }
 
@@ -347,52 +365,6 @@ public class Controller implements IBeaconProvider, SelectListener {
                 break;
             default:
                 break;
-        }
-    }
-
-    /**
-     * Creates a timer that keeps requesting a switch's feature reply until it
-     * is received, then continues sending set config/get config messages until
-     * the timer is canceled.
-     * @param sw
-     */
-    protected void startSwitchRequirementsTimer(final IOFSwitch sw) {
-        Timer timer = new Timer();
-        timer.schedule(new TimerTask() {
-            @Override
-            public void run() {
-                try {
-                    if (sw.getSocketChannel().isConnected()) {
-                        if (sw.getFeaturesReply() == null) {
-                            // send another features request
-                            sw.getOutputStream().write(factory.getMessage(OFType.FEATURES_REQUEST));
-                        } else {
-                            // Ensure we receive the full packet via PacketIn
-                            OFSetConfig config = (OFSetConfig) factory
-                                    .getMessage(OFType.SET_CONFIG);
-                            config.setMissSendLength((short) 0xffff)
-                                    .setLengthU(OFSetConfig.MINIMUM_LENGTH);
-                            sw.getOutputStream().write(config);
-                            sw.getOutputStream().write(factory.getMessage(OFType.GET_CONFIG_REQUEST));
-                        }
-                    } else {
-                        // stop timer
-                        stopSwitchRequirementsTimer(sw);
-                    }
-                } catch (Exception e) {
-                    stopSwitchRequirementsTimer(sw);
-                    log.error("Exception in switch requirements timer", e);
-                }
-            }}, 500, 500);
-        sw.getAttributes().put(SWITCH_REQUIREMENTS_TIMER_KEY, timer);
-    }
-
-    protected void stopSwitchRequirementsTimer(final IOFSwitch sw) {
-        Timer timer = (Timer) sw.getAttributes().get(
-                SWITCH_REQUIREMENTS_TIMER_KEY);
-        if (timer != null) {
-            timer.cancel();
-            sw.getAttributes().remove(SWITCH_REQUIREMENTS_TIMER_KEY);
         }
     }
 
@@ -723,13 +695,6 @@ public class Controller implements IBeaconProvider, SelectListener {
     }
 
     /**
-     * @param switchRequirementsTimer the switchRequirementsTimer to set
-     */
-    public void setSwitchRequirementsTimer(boolean switchRequirementsTimer) {
-        this.switchRequirementsTimer = switchRequirementsTimer;
-    }
-
-    /**
      * Configures all switch output streams to attempt to flush on every write
      * @param immediate the immediate to set
      */
@@ -744,5 +709,12 @@ public class Controller implements IBeaconProvider, SelectListener {
      */
     public void setNoDelay(boolean noDelay) {
         this.noDelay = noDelay;
+    }
+
+    /**
+     * @param deletePreExistingFlows the deletePreExistingFlows to set
+     */
+    public void setDeletePreExistingFlows(boolean deletePreExistingFlows) {
+        this.deletePreExistingFlows = deletePreExistingFlows;
     }
 }
