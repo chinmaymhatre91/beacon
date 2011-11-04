@@ -31,8 +31,8 @@ public interface IBeaconProvider {
   public void removeOFMessageListener(OFType type, IOFMessageListener listener);
 
   /**
-   * Returns a list of all actively connected OpenFlow switches
-   * @return the set of connected switches
+   * Returns a read-only map of all OpenFlow switches in the ACTIVE state
+   * @return the map of switches
    */
   public Map<Long, IOFSwitch> getSwitches();
 

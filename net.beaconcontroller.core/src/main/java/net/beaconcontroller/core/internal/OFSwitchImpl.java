@@ -14,7 +14,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import net.beaconcontroller.core.IBeaconProvider;
-import net.beaconcontroller.core.IOFSwitch;
 import net.beaconcontroller.core.io.OFMessageSafeOutStream;
 
 import org.openflow.io.OFMessageInStream;
@@ -30,7 +29,7 @@ import org.slf4j.LoggerFactory;
  *
  * @author David Erickson (daviderickson@cs.stanford.edu)
  */
-public class OFSwitchImpl implements IOFSwitch {
+public class OFSwitchImpl implements IOFSwitchExt {
     protected static Logger log = LoggerFactory.getLogger(OFSwitchImpl.class);
     protected ConcurrentMap<Object, Object> attributes;
     protected IBeaconProvider beaconProvider;
@@ -40,6 +39,7 @@ public class OFSwitchImpl implements IOFSwitch {
     protected OFMessageSafeOutStream outStream;
     protected long lastReceivedMessageTime;
     protected SocketChannel socketChannel;
+    protected volatile SwitchState state;
     protected AtomicInteger transactionIdSource;
 
     public OFSwitchImpl() {
@@ -142,5 +142,18 @@ public class OFSwitchImpl implements IOFSwitch {
     @Override
     public void setLastReceivedMessageTime(long epochMS) {
         this.lastReceivedMessageTime = epochMS;
+    }
+
+    @Override
+    public SwitchState getState() {
+        return state;
+    }
+
+    @Override
+    public void transitionToState(SwitchState state) {
+        if (log.isDebugEnabled())
+            log.debug("Switch {} transitioning from state {} to {}",
+                    new Object[] { this, this.state, state });
+        this.state = state;
     }
 }

@@ -91,7 +91,7 @@ public class Controller implements IBeaconProvider, SelectListener {
     protected ConcurrentMap<OFType, List<IOFMessageListener>> messageListeners;
     protected boolean noDelay = true;
     protected volatile boolean shuttingDown = false;
-    protected ConcurrentHashMap<Long, IOFSwitch> switches;
+    protected ConcurrentHashMap<Long, IOFSwitchExt> switches;
     protected Set<IOFSwitchListener> switchListeners;
     protected boolean switchRequirementsTimer = true;
     protected List<IOLoop> switchIOLoops;
@@ -123,7 +123,7 @@ public class Controller implements IBeaconProvider, SelectListener {
         if (arg instanceof ServerSocketChannel)
             handleListenEvent(key, (ServerSocketChannel)arg);
         else
-            handleSwitchEvent(key, (IOFSwitch) arg);
+            handleSwitchEvent(key, (IOFSwitchExt) arg);
     }
 
     protected void handleListenEvent(SelectionKey key, ServerSocketChannel ssc)
@@ -162,7 +162,7 @@ public class Controller implements IBeaconProvider, SelectListener {
         sl.wakeup();
     }
 
-    protected void handleSwitchEvent(SelectionKey key, IOFSwitch sw) {
+    protected void handleSwitchEvent(SelectionKey key, IOFSwitchExt sw) {
         OFStream out = ((OFStream)sw.getOutputStream());
         OFStream in = (OFStream) sw.getInputStream();
         try {
@@ -205,7 +205,7 @@ public class Controller implements IBeaconProvider, SelectListener {
     /**
      * Disconnect the switch from Beacon
      */
-    protected void disconnectSwitch(SelectionKey key, IOFSwitch sw) {
+    protected void disconnectSwitch(SelectionKey key, IOFSwitchExt sw) {
         key.cancel();
         OFStream stream = (OFStream) sw.getInputStream();
         stream.getIOLoop().removeStream(stream);
@@ -226,7 +226,7 @@ public class Controller implements IBeaconProvider, SelectListener {
      * @param msgs
      * @throws IOException
      */
-    protected void handleMessages(IOFSwitch sw, List<OFMessage> msgs)
+    protected void handleMessages(IOFSwitchExt sw, List<OFMessage> msgs)
             throws IOException {
         for (OFMessage m : msgs) {
             // If we detect a write failure, break early so we can disconnect
@@ -449,7 +449,7 @@ public class Controller implements IBeaconProvider, SelectListener {
 
     public void startUp() throws IOException {
         switchIOLoops = new ArrayList<IOLoop>();
-        switches = new ConcurrentHashMap<Long, IOFSwitch>();
+        switches = new ConcurrentHashMap<Long, IOFSwitchExt>();
 
         if (threadCount == null)
             threadCount = 1;
@@ -581,8 +581,8 @@ public class Controller implements IBeaconProvider, SelectListener {
         stopListener();
 
         // close the switch connections
-        for (Iterator<Entry<Long, IOFSwitch>> it = switches.entrySet().iterator(); it.hasNext();) {
-            Entry<Long, IOFSwitch> entry = it.next();
+        for (Iterator<Entry<Long, IOFSwitchExt>> it = switches.entrySet().iterator(); it.hasNext();) {
+            Entry<Long, IOFSwitchExt> entry = it.next();
             entry.getValue().getSocketChannel().socket().close();
             it.remove();
         }
@@ -605,11 +605,11 @@ public class Controller implements IBeaconProvider, SelectListener {
         long now = System.currentTimeMillis();
         log.trace("Liveness timer running");
 
-        for (Iterator<Entry<Long, IOFSwitch>> it = switches.entrySet()
+        for (Iterator<Entry<Long, IOFSwitchExt>> it = switches.entrySet()
                 .iterator(); it.hasNext();) {
-            Entry<Long, IOFSwitch> entry = it.next();
+            Entry<Long, IOFSwitchExt> entry = it.next();
             long last = entry.getValue().getLastReceivedMessageTime();
-            IOFSwitch sw = entry.getValue();
+            IOFSwitchExt sw = entry.getValue();
             SelectionKey key = ((OFStream)sw.getInputStream()).getKey();
 
             if (now - last >= (2*LIVENESS_TIMEOUT)) {
@@ -652,7 +652,7 @@ public class Controller implements IBeaconProvider, SelectListener {
 
     @Override
     public Map<Long, IOFSwitch> getSwitches() {
-        return this.switches;
+        return Collections.unmodifiableMap(new HashMap<Long, IOFSwitch>(this.switches));
     }
 
     @Override
@@ -670,7 +670,7 @@ public class Controller implements IBeaconProvider, SelectListener {
      * calls all related listeners
      * @param sw the new switch
      */
-    protected void addSwitch(IOFSwitch sw) {
+    protected void addSwitch(IOFSwitchExt sw) {
         this.switches.put(sw.getId(), sw);
         Update update = new Update(sw, true);
         try {

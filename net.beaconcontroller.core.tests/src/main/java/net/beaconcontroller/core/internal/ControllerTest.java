@@ -127,7 +127,7 @@ public class ControllerTest extends BeaconTestCase {
         callbackOrdering.put("PACKET_IN", "test1,test2");
         controller.setCallbackOrdering(callbackOrdering);
 
-        IOFSwitch sw = createMock(IOFSwitch.class);
+        IOFSwitchExt sw = createMock(IOFSwitchExt.class);
         OFStream inputStream = createMock(OFStream.class);
         expect(sw.getInputStream()).andReturn(inputStream).anyTimes();
         expect(inputStream.getWriteFailure()).andReturn(false).anyTimes();

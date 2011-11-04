@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Future;
 
+import net.beaconcontroller.core.internal.SwitchState;
 import net.beaconcontroller.core.io.OFMessageSafeOutStream;
 
 import org.openflow.io.OFMessageInStream;
@@ -104,4 +105,10 @@ public interface IOFSwitch {
      */
     public Future<List<OFStatistics>> getStatistics(OFStatisticsRequest request)
             throws IOException;
+
+    /**
+     * Returns the state the switch is currently in.
+     * @return the current state
+     */
+    public SwitchState getState();
 }
