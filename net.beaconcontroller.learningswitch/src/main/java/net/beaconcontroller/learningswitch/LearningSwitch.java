@@ -102,6 +102,7 @@ public class LearningSwitch implements IOFMessageListener, IOFSwitchListener {
             OFActionOutput action = new OFActionOutput(outPort);
             OFFlowMod fm = new OFFlowMod()
                 .setBufferId(bufferId)
+                .setCommand(OFFlowMod.OFPFC_ADD)
                 .setIdleTimeout((short) 5)
                 .setMatch(match)
                 .setActions(Collections.singletonList((OFAction)action));

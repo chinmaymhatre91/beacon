@@ -96,12 +96,9 @@ public class LearningSwitchTest extends BeaconTestCase {
         // build our expected flooded packetOut
         OFPacketOut po = new OFPacketOut()
             .setActions(Arrays.asList(new OFAction[] {new OFActionOutput().setPort(OFPort.OFPP_FLOOD.getValue())}))
-            .setActionsLength((short) OFActionOutput.MINIMUM_LENGTH)
             .setBufferId(-1)
             .setInPort((short)1)
             .setPacketData(this.testPacketSerialized);
-        po.setLengthU(OFPacketOut.MINIMUM_LENGTH + po.getActionsLengthU()
-                + this.testPacketSerialized.length);
 
         // Mock up our expected behavior
         IOFSwitch mockSwitch = createMock(IOFSwitch.class);
@@ -138,16 +135,14 @@ public class LearningSwitchTest extends BeaconTestCase {
             .setBufferId(50)
             .setCommand(OFFlowMod.OFPFC_ADD)
             .setIdleTimeout((short) 5)
-            .setMatch(new OFMatch().loadFromPacket(testPacketSerialized, (short) 1))
-            .setOutPort(OFPort.OFPP_NONE.getValue())
-            .setLengthU(OFFlowMod.MINIMUM_LENGTH+OFActionOutput.MINIMUM_LENGTH);
+            .setMatch(new OFMatch().loadFromPacket(testPacketSerialized, (short) 1));
 
         // Mock up our expected behavior
         IOFSwitch mockSwitch = createMock(IOFSwitch.class);
         OFMessageInStream mockInStream = createMock(OFMessageInStream.class);
         OFMessageSafeOutStream mockStream = createMock(OFMessageSafeOutStream.class);
-        expect(mockSwitch.getInputStream()).andReturn(mockInStream);
-        expect(mockInStream.getMessageFactory()).andReturn(new BasicFactory());
+        expect(mockSwitch.getInputStream()).andReturn(mockInStream).anyTimes();
+        expect(mockInStream.getMessageFactory()).andReturn(new BasicFactory()).anyTimes();
         expect(mockSwitch.getOutputStream()).andReturn(mockStream);
         mockStream.write(fm);
 
