@@ -2,7 +2,7 @@ Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: net.beaconcontroller.core.tests
 Bundle-SymbolicName: net.beaconcontroller.core.tests
-Bundle-Version: 1.0.0
+Bundle-Version: 1.0.1.qualifier
 Bundle-Vendor: net.beaconcontroller
 Fragment-Host: net.beaconcontroller.core
 Bundle-RequiredExecutionEnvironment: JavaSE-1.6

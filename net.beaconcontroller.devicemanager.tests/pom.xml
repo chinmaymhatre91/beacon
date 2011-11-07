@@ -5,12 +5,12 @@
   <parent>
     <artifactId>beacon</artifactId>
     <groupId>net.beaconcontroller</groupId>
-    <version>1.0.0</version>
+    <version>1.0.1-SNAPSHOT</version>
     <relativePath>../net.beaconcontroller.parent</relativePath>
   </parent>
   <groupId>net.beaconcontroller</groupId>
   <artifactId>net.beaconcontroller.devicemanager.tests</artifactId>
-  <version>1.0.0</version>
+  <version>1.0.1-SNAPSHOT</version>
   <packaging>eclipse-test-plugin</packaging>
 
   <build>

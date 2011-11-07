@@ -5,11 +5,11 @@
   <parent>
     <artifactId>beacon</artifactId>
     <groupId>net.beaconcontroller</groupId>
-    <version>1.0.0</version>
+    <version>1.0.1-SNAPSHOT</version>
     <relativePath>../net.beaconcontroller.parent</relativePath>
   </parent>
   <groupId>net.beaconcontroller</groupId>
   <artifactId>net.beaconcontroller.test</artifactId>
-  <version>1.0.0</version>
+  <version>1.0.1-SNAPSHOT</version>
   <packaging>eclipse-plugin</packaging>
 </project>
