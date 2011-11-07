@@ -38,7 +38,7 @@ public interface IBeaconProvider {
      * @param sw
      * @param listener
      */
-    public void listenerComplete(IOFSwitch sw, IOFInitializerListener listener);
+    public void initializationComplete(IOFSwitch sw, IOFInitializerListener listener);
 
     /**
      * 

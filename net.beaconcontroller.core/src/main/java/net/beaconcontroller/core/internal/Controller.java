@@ -289,6 +289,7 @@ public class Controller implements IBeaconProvider, SelectListener {
                                     // Add all existing initializers to the list
                                     this.initializerMap.put(sw,
                                         (CopyOnWriteArrayList<IOFInitializerListener>) initializerList.clone());
+                                    log.debug("Remaining initializers for switch {}: {}", sw, this.initializerMap.get(sw));
 
                                     // Delete all pre-existing flows
                                     if (deletePreExistingFlows) {
@@ -792,12 +793,14 @@ public class Controller implements IBeaconProvider, SelectListener {
     }
 
     @Override
-    public void listenerComplete(IOFSwitch sw, IOFInitializerListener listener) {
+    public void initializationComplete(IOFSwitch sw, IOFInitializerListener listener) {
         // TODO this cast isn't ideal.. is there a better alternative?
+        log.debug("Initializer for switch {} has completed: {}", sw, listener);
         IOFSwitchExt swExt = (IOFSwitchExt) sw;
         CopyOnWriteArrayList<IOFInitializerListener> list = this.initializerMap.get(swExt);
         if (list != null) {
             list.remove(listener);
+            log.debug("Remaining initializers for switch {}: {}", sw, list);
             if (list.isEmpty()) {
                 this.initializerMap.remove(swExt);
                 swExt.transitionToState(SwitchState.ACTIVE);

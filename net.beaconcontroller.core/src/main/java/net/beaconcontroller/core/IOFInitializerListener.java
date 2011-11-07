@@ -17,7 +17,7 @@ import org.openflow.protocol.OFMessage;
  * When a switch completes the core's initialization it transits into a state
  * where incoming OpenFlow messages are sent to one listener at a time.  Once
  * a listener completes initialization for a switch it calls
- * {@link IBeaconProvider#listenerComplete(IOFSwitch, IOFMessageListener)}
+ * {@link IBeaconProvider#initializationComplete(IOFSwitch, IOFMessageListener)}
  * which removes this listener from the list of initialization listeners
  * for the specified switch.  At this point incoming OpenFlow messages are sent
  * to the next listener in sequence, or the switch transits state to
