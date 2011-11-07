@@ -152,7 +152,7 @@ public class Controller implements IBeaconProvider, SelectListener {
         sw.setOutputStream(stream);
         sw.setSocketChannel(sock);
         sw.setBeaconProvider(this);
-        sw.transitionToState(SwitchState.CONNECTED);
+        sw.transitionToState(SwitchState.HELLO_SENT);
 
         // Send HELLO
         stream.write(factory.getMessage(OFType.HELLO));
@@ -253,19 +253,19 @@ public class Controller implements IBeaconProvider, SelectListener {
                     // fall through intentionally so error can be listened for
                 default:
                     switch (sw.getState()) {
-                        case CONNECTED:
+                        case HELLO_SENT:
                             if (m.getType() == OFType.HELLO) {
                                 log.debug("HELLO from {}", sw);
-                                sw.transitionToState(SwitchState.HELLO_RECEIVED);
+                                sw.transitionToState(SwitchState.FEATURES_REQUEST_SENT);
                                 // Send initial Features Request
                                 sw.getOutputStream().write(factory.getMessage(OFType.FEATURES_REQUEST));
                             }
                             break;
-                        case HELLO_RECEIVED:
+                        case FEATURES_REQUEST_SENT:
                             if (m.getType() == OFType.FEATURES_REPLY) {
                                 log.debug("Features Reply from {}", sw);
                                 sw.setFeaturesReply((OFFeaturesReply) m);
-                                sw.transitionToState(SwitchState.FEATURES_REPLY_RECEIVED);
+                                sw.transitionToState(SwitchState.GET_CONFIG_REQUEST_SENT);
                                 // Set config and request to receive the config
                                 OFSetConfig config = (OFSetConfig) factory
                                         .getMessage(OFType.SET_CONFIG);
@@ -276,12 +276,12 @@ public class Controller implements IBeaconProvider, SelectListener {
                                 sw.getOutputStream().write(factory.getMessage(OFType.GET_CONFIG_REQUEST));
                             }
                             break;
-                        case FEATURES_REPLY_RECEIVED:
+                        case GET_CONFIG_REQUEST_SENT:
                             if (m.getType() == OFType.GET_CONFIG_REPLY) {
                                 OFGetConfigReply cr = (OFGetConfigReply) m;
                                 if (cr.getMissSendLength() == (short)0xffff) {
                                     log.debug("Config Reply from {} confirms miss length set to 0xffff", sw);
-                                    sw.transitionToState(SwitchState.ACTIVE);
+                                    sw.transitionToState(SwitchState.INITIALIZING);
 
                                     // Delete all pre-existing flows
                                     if (deletePreExistingFlows) {
