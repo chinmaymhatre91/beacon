@@ -34,6 +34,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import net.beaconcontroller.core.IBeaconProvider;
+import net.beaconcontroller.core.IOFInitializerListener;
 import net.beaconcontroller.core.IOFMessageListener;
 import net.beaconcontroller.core.IOFMessageListener.Command;
 import net.beaconcontroller.core.IOFSwitch;
@@ -79,11 +80,15 @@ public class Controller implements IBeaconProvider, SelectListener {
     protected static int LIVENESS_TIMEOUT = 5000;
     protected static String SWITCH_REQUIREMENTS_TIMER_KEY = "SW_REQ_TIMER";
 
+    protected ConcurrentHashMap<Long, IOFSwitchExt> activeSwitches;
+    protected CopyOnWriteArraySet<IOFSwitchExt> allSwitches;
     protected Map<String,String> callbackOrdering;
     protected boolean deletePreExistingFlows = true;
     protected ExecutorService es;
     protected BasicFactory factory;
     protected boolean immediate = false;
+    protected CopyOnWriteArrayList<IOFInitializerListener> initializerList;
+    protected ConcurrentHashMap<IOFSwitchExt, CopyOnWriteArrayList<IOFInitializerListener>> initializerMap;
     protected String listenAddress;
     protected int listenPort = 6633;
     protected IOLoop listenerIOLoop;
@@ -93,7 +98,6 @@ public class Controller implements IBeaconProvider, SelectListener {
     protected ConcurrentMap<OFType, List<IOFMessageListener>> messageListeners;
     protected boolean noDelay = true;
     protected volatile boolean shuttingDown = false;
-    protected ConcurrentHashMap<Long, IOFSwitchExt> switches;
     protected Set<IOFSwitchListener> switchListeners;
     protected List<IOLoop> switchIOLoops;
     protected Integer threadCount;
@@ -154,6 +158,8 @@ public class Controller implements IBeaconProvider, SelectListener {
         sw.setBeaconProvider(this);
         sw.transitionToState(SwitchState.HELLO_SENT);
 
+        addSwitch(sw);
+
         // Send HELLO
         stream.write(factory.getMessage(OFType.HELLO));
 
@@ -211,9 +217,7 @@ public class Controller implements IBeaconProvider, SelectListener {
         key.cancel();
         OFStream stream = (OFStream) sw.getInputStream();
         stream.getIOLoop().removeStream(stream);
-        // only remove if we have a features reply (DPID)
-        if (sw.getFeaturesReply() != null)
-            removeSwitch(sw);
+        removeSwitch(sw);
         try {
             sw.getSocketChannel().socket().close();
         } catch (IOException e1) {
@@ -282,6 +286,9 @@ public class Controller implements IBeaconProvider, SelectListener {
                                 if (cr.getMissSendLength() == (short)0xffff) {
                                     log.debug("Config Reply from {} confirms miss length set to 0xffff", sw);
                                     sw.transitionToState(SwitchState.INITIALIZING);
+                                    // Add all existing initializers to the list
+                                    this.initializerMap.put(sw,
+                                        (CopyOnWriteArrayList<IOFInitializerListener>) initializerList.clone());
 
                                     // Delete all pre-existing flows
                                     if (deletePreExistingFlows) {
@@ -295,14 +302,41 @@ public class Controller implements IBeaconProvider, SelectListener {
                                         sw.getOutputStream().write(fm);
                                         sw.getOutputStream().write(factory.getMessage(OFType.BARRIER_REQUEST));
                                     }
-
-                                    // Add switch to active list
-                                    addSwitch(sw);
                                 } else {
                                     log.error("Switch {} refused to set miss send length to 0xffff, disconnecting", sw);
                                     disconnectSwitch(((OFStream)sw.getInputStream()).getKey(), sw);
                                     return;
                                 }
+                            }
+                            break;
+                        case INITIALIZING:
+                            // Are there pending initializers for this switch?
+                            CopyOnWriteArrayList<IOFInitializerListener> initializers =
+                                initializerMap.get(sw);
+                            if (initializers != null) {
+                                Iterator<IOFInitializerListener> it = initializers.iterator();
+                                if (it.hasNext()) {
+                                    IOFInitializerListener listener = it.next();
+                                    try {
+                                        listener.initializerReceive(sw, m);
+                                    } catch (Exception e) {
+                                        log.error(
+                                                "Error calling initializer listener: {} on switch: {} for message: {}, removing listener",
+                                                new Object[] { listener, sw, m });
+                                        initializers.remove(listener);
+                                    }
+                                }
+                                if (initializers.size() == 0) {
+                                    // no initializers remaining
+                                    initializerMap.remove(sw);
+                                    sw.transitionToState(SwitchState.ACTIVE);
+                                    // Add switch to active list
+                                    addActiveSwitch(sw);
+                                }
+                            } else {
+                                sw.transitionToState(SwitchState.ACTIVE);
+                                // Add switch to active list
+                                addActiveSwitch(sw);
                             }
                             break;
                         case ACTIVE:
@@ -420,8 +454,11 @@ public class Controller implements IBeaconProvider, SelectListener {
     }
 
     public void startUp() throws IOException {
+        initializerList = new CopyOnWriteArrayList<IOFInitializerListener>();
+        initializerMap = new ConcurrentHashMap<IOFSwitchExt, CopyOnWriteArrayList<IOFInitializerListener>>();
         switchIOLoops = new ArrayList<IOLoop>();
-        switches = new ConcurrentHashMap<Long, IOFSwitchExt>();
+        activeSwitches = new ConcurrentHashMap<Long, IOFSwitchExt>();
+        allSwitches = new CopyOnWriteArraySet<IOFSwitchExt>();
 
         if (threadCount == null)
             threadCount = 1;
@@ -553,7 +590,7 @@ public class Controller implements IBeaconProvider, SelectListener {
         stopListener();
 
         // close the switch connections
-        for (Iterator<Entry<Long, IOFSwitchExt>> it = switches.entrySet().iterator(); it.hasNext();) {
+        for (Iterator<Entry<Long, IOFSwitchExt>> it = activeSwitches.entrySet().iterator(); it.hasNext();) {
             Entry<Long, IOFSwitchExt> entry = it.next();
             entry.getValue().getSocketChannel().socket().close();
             it.remove();
@@ -577,11 +614,9 @@ public class Controller implements IBeaconProvider, SelectListener {
         long now = System.currentTimeMillis();
         log.trace("Liveness timer running");
 
-        for (Iterator<Entry<Long, IOFSwitchExt>> it = switches.entrySet()
-                .iterator(); it.hasNext();) {
-            Entry<Long, IOFSwitchExt> entry = it.next();
-            long last = entry.getValue().getLastReceivedMessageTime();
-            IOFSwitchExt sw = entry.getValue();
+        for (Iterator<IOFSwitchExt> it = allSwitches.iterator(); it.hasNext();) {
+            IOFSwitchExt sw = it.next();
+            long last = sw.getLastReceivedMessageTime();
             SelectionKey key = ((OFStream)sw.getInputStream()).getKey();
 
             if (now - last >= (2*LIVENESS_TIMEOUT)) {
@@ -624,7 +659,15 @@ public class Controller implements IBeaconProvider, SelectListener {
 
     @Override
     public Map<Long, IOFSwitch> getSwitches() {
-        return Collections.unmodifiableMap(new HashMap<Long, IOFSwitch>(this.switches));
+        return Collections.unmodifiableMap(new HashMap<Long, IOFSwitch>(this.activeSwitches));
+    }
+
+    /**
+     * This is only to be used for testing
+     * @return
+     */
+    protected Set<IOFSwitchExt> getAllSwitches() {
+        return Collections.unmodifiableSet(this.allSwitches);
     }
 
     @Override
@@ -638,12 +681,21 @@ public class Controller implements IBeaconProvider, SelectListener {
     }
 
     /**
-     * Adds a switch that has connected and returned a features reply, then
-     * calls all related listeners
+     * Adds a switch that has transitioned into the HELLO_SENT state
+     *
      * @param sw the new switch
      */
     protected void addSwitch(IOFSwitchExt sw) {
-        this.switches.put(sw.getId(), sw);
+        this.allSwitches.add(sw);
+    }
+
+    /**
+     * Adds a switch that has transitioned into the ACTIVE state, then
+     * calls all related listeners
+     * @param sw the new switch
+     */
+    protected void addActiveSwitch(IOFSwitchExt sw) {
+        this.activeSwitches.put(sw.getId(), sw);
         Update update = new Update(sw, true);
         try {
             this.updates.put(update);
@@ -656,15 +708,19 @@ public class Controller implements IBeaconProvider, SelectListener {
      * Removes a disconnected switch and calls all related listeners
      * @param sw the switch that has disconnected
      */
-    protected void removeSwitch(IOFSwitch sw) {
-        if (!this.switches.remove(sw.getId(), sw)) {
-            log.warn("Removing switch {} has already been replaced", sw);
-        }
-        Update update = new Update(sw, false);
-        try {
-            this.updates.put(update);
-        } catch (InterruptedException e) {
-            log.error("Failure adding update to queue", e);
+    protected void removeSwitch(IOFSwitchExt sw) {
+        this.allSwitches.remove(sw);
+        // If active remove from DPID indexed map
+        if (SwitchState.ACTIVE == sw.getState()) {
+            if (!this.activeSwitches.remove(sw.getId(), sw)) {
+                log.warn("Removing switch {} has already been replaced", sw);
+            }
+            Update update = new Update(sw, false);
+            try {
+                this.updates.put(update);
+            } catch (InterruptedException e) {
+                log.error("Failure adding update to queue", e);
+            }
         }
     }
 
@@ -716,5 +772,36 @@ public class Controller implements IBeaconProvider, SelectListener {
      */
     public void setDeletePreExistingFlows(boolean deletePreExistingFlows) {
         this.deletePreExistingFlows = deletePreExistingFlows;
+    }
+
+    @Override
+    public void addOFInitializerListener(IOFInitializerListener listener) {
+        this.initializerList.add(listener);
+    }
+
+    @Override
+    public void removeOFInitListener(IOFInitializerListener listener) {
+        this.initializerList.remove(listener);
+        Iterator<Map.Entry<IOFSwitchExt, CopyOnWriteArrayList<IOFInitializerListener>>> it =
+            this.initializerMap.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry<IOFSwitchExt, CopyOnWriteArrayList<IOFInitializerListener>> entry =
+                it.next();
+            entry.getValue().remove(listener);
+        }
+    }
+
+    @Override
+    public void listenerComplete(IOFSwitch sw, IOFInitializerListener listener) {
+        // TODO this cast isn't ideal.. is there a better alternative?
+        IOFSwitchExt swExt = (IOFSwitchExt) sw;
+        CopyOnWriteArrayList<IOFInitializerListener> list = this.initializerMap.get(swExt);
+        if (list != null) {
+            list.remove(listener);
+            if (list.isEmpty()) {
+                this.initializerMap.remove(swExt);
+                swExt.transitionToState(SwitchState.ACTIVE);
+            }
+        }
     }
 }

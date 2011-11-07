@@ -13,6 +13,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import net.beaconcontroller.core.IBeaconProvider;
+import net.beaconcontroller.core.IOFInitializerListener;
 import net.beaconcontroller.core.IOFMessageListener;
 import net.beaconcontroller.core.IOFSwitch;
 import net.beaconcontroller.core.IOFSwitchListener;
@@ -107,5 +108,17 @@ public class MockBeaconProvider implements IBeaconProvider {
      */
     public List<IOFSwitchListener> getSwitchListeners() {
         return switchListeners;
+    }
+
+    @Override
+    public void addOFInitializerListener(IOFInitializerListener listener) {
+    }
+
+    @Override
+    public void removeOFInitListener(IOFInitializerListener listener) {
+    }
+
+    @Override
+    public void listenerComplete(IOFSwitch sw, IOFInitializerListener listener) {
     }
 }

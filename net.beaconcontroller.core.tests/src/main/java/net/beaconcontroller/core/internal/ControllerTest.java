@@ -6,7 +6,12 @@ package net.beaconcontroller.core.internal;
 
 import static org.easymock.EasyMock.*;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
+import java.net.Socket;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -18,6 +23,7 @@ import java.util.concurrent.TimeUnit;
 import net.beaconcontroller.core.IOFMessageListener;
 import net.beaconcontroller.core.IOFMessageListener.Command;
 import net.beaconcontroller.core.IOFSwitch;
+import net.beaconcontroller.core.io.internal.IOLoop;
 import net.beaconcontroller.core.io.internal.OFStream;
 import net.beaconcontroller.core.test.MockBeaconProvider;
 import net.beaconcontroller.test.BeaconTestCase;
@@ -132,6 +138,7 @@ public class ControllerTest extends BeaconTestCase {
         expect(sw.getInputStream()).andReturn(inputStream).anyTimes();
         expect(inputStream.getWriteFailure()).andReturn(false).anyTimes();
         expect(sw.getFeaturesReply()).andReturn(new OFFeaturesReply()).anyTimes();
+        expect(sw.getState()).andReturn(SwitchState.ACTIVE).anyTimes();
         OFPacketIn pi = new OFPacketIn();
         IOFMessageListener test1 = createMock(IOFMessageListener.class);
         expect(test1.getName()).andReturn("test1").anyTimes();
@@ -152,9 +159,85 @@ public class ControllerTest extends BeaconTestCase {
         expect(inputStream.getWriteFailure()).andReturn(false).anyTimes();
         expect(test1.receive(sw, pi)).andReturn(Command.STOP);
         expect(sw.getFeaturesReply()).andReturn(new OFFeaturesReply()).anyTimes();
+        expect(sw.getState()).andReturn(SwitchState.ACTIVE).anyTimes();
         replay(test1, test2, sw, inputStream);
         controller.handleMessages(sw, Arrays.asList(new OFMessage[] {pi}));
         verify(test1, test2, sw, inputStream);
+    }
+
+    /**
+     * This test verifies that a switch that is not yet active will be correctly
+     * tested for liveness and removed if necessary
+     * @throws Exception
+     */
+    @Test
+    public void testLiveness() throws Exception {
+        Controller controller = getController();
+        IOFSwitchExt sw = createMock(IOFSwitchExt.class);
+        SocketChannel sc = createMock(SocketChannel.class);
+        Socket sock = createMock(Socket.class);
+        OFStream inputStream = createMock(OFStream.class);
+        SelectionKey key = createMock(SelectionKey.class);
+        IOLoop ioLoop = createMock(IOLoop.class);
+
+        expect(sw.getLastReceivedMessageTime()).andReturn(0L).atLeastOnce();
+        expect(sw.getInputStream()).andReturn(inputStream).anyTimes();
+        expect(inputStream.getKey()).andReturn(key).atLeastOnce();
+        expect(sw.getFeaturesReply()).andReturn(null).anyTimes();
+        expect(sw.getState()).andReturn(SwitchState.HELLO_SENT).anyTimes();
+        expect(sw.getSocketChannel()).andReturn(sc).atLeastOnce();
+        expect(sc.socket()).andReturn(sock).atLeastOnce();
+        expect(inputStream.getIOLoop()).andReturn(ioLoop).atLeastOnce();
+        key.cancel();
+        ioLoop.removeStream(inputStream);
+
+        replay(sw, sc, inputStream, key, ioLoop);
+        assertFalse(controller.getAllSwitches().contains(sw));
+        controller.addSwitch(sw);
+        assertTrue(controller.getAllSwitches().contains(sw));
+        Thread.sleep(Controller.LIVENESS_POLL_INTERVAL*2);
+        verify(sw, sc, inputStream, key, ioLoop);
+        assertFalse(controller.getAllSwitches().contains(sw));
+    }
+
+    /**
+     * This test verifies that a switch that is active will be correctly
+     * tested for liveness and removed if necessary
+     * @throws Exception
+     */
+    @Test
+    public void testLivenessActive() throws Exception {
+        Controller controller = getController();
+        IOFSwitchExt sw = createMock(IOFSwitchExt.class);
+        SocketChannel sc = createMock(SocketChannel.class);
+        Socket sock = createMock(Socket.class);
+        OFStream inputStream = createMock(OFStream.class);
+        SelectionKey key = createMock(SelectionKey.class);
+        IOLoop ioLoop = createMock(IOLoop.class);
+
+        expect(sw.getLastReceivedMessageTime()).andReturn(0L).atLeastOnce();
+        expect(sw.getInputStream()).andReturn(inputStream).anyTimes();
+        expect(inputStream.getKey()).andReturn(key).atLeastOnce();
+        expect(sw.getFeaturesReply()).andReturn(new OFFeaturesReply()).anyTimes();
+        expect(sw.getState()).andReturn(SwitchState.ACTIVE).anyTimes();
+        expect(sw.getSocketChannel()).andReturn(sc).atLeastOnce();
+        expect(sw.getId()).andReturn(1L).atLeastOnce();
+        expect(sc.socket()).andReturn(sock).atLeastOnce();
+        expect(inputStream.getIOLoop()).andReturn(ioLoop).atLeastOnce();
+        key.cancel();
+        ioLoop.removeStream(inputStream);
+
+        replay(sw, sc, inputStream, key, ioLoop);
+        assertFalse(controller.getAllSwitches().contains(sw));
+        assertFalse(controller.getSwitches().containsKey(1L));
+        controller.addSwitch(sw);
+        controller.addActiveSwitch(sw);
+        assertTrue(controller.getAllSwitches().contains(sw));
+        assertEquals(sw, controller.getSwitches().get(1L));
+        Thread.sleep(Controller.LIVENESS_POLL_INTERVAL*2);
+        verify(sw, sc, inputStream, key, ioLoop);
+        assertFalse(controller.getAllSwitches().contains(sw));
+        assertFalse(controller.getSwitches().containsKey(1L));
     }
 
     public class FutureFetcher<E> implements Runnable {
