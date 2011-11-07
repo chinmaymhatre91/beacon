@@ -16,41 +16,68 @@ import org.openflow.protocol.OFType;
  * @author David Erickson (daviderickson@cs.stanford.edu)
  */
 public interface IBeaconProvider {
-  /**
-   * 
-   * @param type
-   * @param listener
-   */
-  public void addOFMessageListener(OFType type, IOFMessageListener listener);
+    /**
+     * Adds an initializer listener that will be used for each newly connecting
+     * switch.
+     * @param listener
+     */
+    public void addOFInitializerListener(IOFInitializerListener listener);
 
-  /**
-   * 
-   * @param type
-   * @param listener
-   */
-  public void removeOFMessageListener(OFType type, IOFMessageListener listener);
+    /**
+     * Removes an initializer listener from the list that is used for each
+     * switch
+     * @param listener
+     */
+    public void removeOFInitListener(IOFInitializerListener listener);
 
-  /**
-   * Returns a read-only map of all OpenFlow switches in the ACTIVE state
-   * @return the map of switches
-   */
-  public Map<Long, IOFSwitch> getSwitches();
+    /**
+     * Once an initializer has initialized a switch it calls this method
+     * which removes the initializer for the specified switch, sending
+     * OFMessages to the next listener in sequence, or making the switch active
+     * if the sequence for the specified switch becomes empty.
+     * @param sw
+     * @param listener
+     */
+    public void listenerComplete(IOFSwitch sw, IOFInitializerListener listener);
 
-  /**
-   * Add a switch listener
-   * @param listener
-   */
-  public void addOFSwitchListener(IOFSwitchListener listener);
+    /**
+     * 
+     * @param type
+     * @param listener
+     */
+    public void addOFMessageListener(OFType type, IOFMessageListener listener);
 
-  /**
-   * Remove a switch listener
-   * @param listener
-   */
-  public void removeOFSwitchListener(IOFSwitchListener listener);
+    /**
+     * 
+     * @param type
+     * @param listener
+     */
+    public void removeOFMessageListener(OFType type, IOFMessageListener listener);
 
-  /**
-   * Return a non-modifiable list of all current listeners
-   * @return listeners
-   */
-  public Map<OFType, List<IOFMessageListener>> getListeners();
+    /**
+     * Returns a read-only map of all OpenFlow switches in the ACTIVE state
+     * @return the map of switches
+     */
+    public Map<Long, IOFSwitch> getSwitches();
+
+    /**
+     * Add a switch listener
+     *
+     * @param listener
+     */
+    public void addOFSwitchListener(IOFSwitchListener listener);
+
+    /**
+     * Remove a switch listener
+     *
+     * @param listener
+     */
+    public void removeOFSwitchListener(IOFSwitchListener listener);
+
+    /**
+     * Return a non-modifiable list of all current listeners
+     *
+     * @return listeners
+     */
+    public Map<OFType, List<IOFMessageListener>> getListeners();
 }
