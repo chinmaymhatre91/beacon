@@ -231,6 +231,7 @@ public class Controller implements IBeaconProvider, SelectListener {
      * @param msgs
      * @throws IOException
      */
+    @SuppressWarnings("unchecked")
     protected void handleMessages(IOFSwitchExt sw, List<OFMessage> msgs)
             throws IOException {
         for (OFMessage m : msgs) {
