@@ -14,6 +14,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import net.beaconcontroller.core.IBeaconProvider;
+import net.beaconcontroller.core.OFSwitchState;
 import net.beaconcontroller.core.io.OFMessageSafeOutStream;
 
 import org.openflow.io.OFMessageInStream;
@@ -41,7 +42,7 @@ public class OFSwitchImpl implements IOFSwitchExt {
     protected OFMessageSafeOutStream outStream;
     protected long lastReceivedMessageTime;
     protected SocketChannel socketChannel;
-    protected volatile SwitchState state;
+    protected volatile OFSwitchState state;
     protected AtomicInteger transactionIdSource;
 
     public OFSwitchImpl() {
@@ -147,12 +148,12 @@ public class OFSwitchImpl implements IOFSwitchExt {
     }
 
     @Override
-    public SwitchState getState() {
+    public OFSwitchState getState() {
         return state;
     }
 
     @Override
-    public void transitionToState(SwitchState state) {
+    public void transitionToState(OFSwitchState state) {
         if (log.isDebugEnabled())
             log.debug("Switch {} transitioning from state {} to {}",
                     new Object[] { this, this.state, state });

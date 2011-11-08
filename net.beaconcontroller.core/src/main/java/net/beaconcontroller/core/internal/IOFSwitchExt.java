@@ -7,6 +7,7 @@ package net.beaconcontroller.core.internal;
 import org.openflow.protocol.statistics.OFDescriptionStatistics;
 
 import net.beaconcontroller.core.IOFSwitch;
+import net.beaconcontroller.core.OFSwitchState;
 
 /**
  *  This interface is an extension of IOFSwitch, but is only used internally
@@ -20,7 +21,7 @@ public interface IOFSwitchExt extends IOFSwitch {
      * Change state of the switch
      * @param state
      */
-    public void transitionToState(SwitchState state);
+    public void transitionToState(OFSwitchState state);
 
     /**
      * Sets the description statistics received from the switch

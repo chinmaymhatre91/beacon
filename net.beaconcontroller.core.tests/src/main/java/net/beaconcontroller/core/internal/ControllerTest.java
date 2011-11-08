@@ -21,6 +21,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import net.beaconcontroller.core.IOFMessageListener;
+import net.beaconcontroller.core.OFSwitchState;
 import net.beaconcontroller.core.IOFMessageListener.Command;
 import net.beaconcontroller.core.IOFSwitch;
 import net.beaconcontroller.core.io.internal.IOLoop;
@@ -138,7 +139,7 @@ public class ControllerTest extends BeaconTestCase {
         expect(sw.getInputStream()).andReturn(inputStream).anyTimes();
         expect(inputStream.getWriteFailure()).andReturn(false).anyTimes();
         expect(sw.getFeaturesReply()).andReturn(new OFFeaturesReply()).anyTimes();
-        expect(sw.getState()).andReturn(SwitchState.ACTIVE).anyTimes();
+        expect(sw.getState()).andReturn(OFSwitchState.ACTIVE).anyTimes();
         OFPacketIn pi = new OFPacketIn();
         IOFMessageListener test1 = createMock(IOFMessageListener.class);
         expect(test1.getName()).andReturn("test1").anyTimes();
@@ -159,7 +160,7 @@ public class ControllerTest extends BeaconTestCase {
         expect(inputStream.getWriteFailure()).andReturn(false).anyTimes();
         expect(test1.receive(sw, pi)).andReturn(Command.STOP);
         expect(sw.getFeaturesReply()).andReturn(new OFFeaturesReply()).anyTimes();
-        expect(sw.getState()).andReturn(SwitchState.ACTIVE).anyTimes();
+        expect(sw.getState()).andReturn(OFSwitchState.ACTIVE).anyTimes();
         replay(test1, test2, sw, inputStream);
         controller.handleMessages(sw, Arrays.asList(new OFMessage[] {pi}));
         verify(test1, test2, sw, inputStream);
@@ -184,7 +185,7 @@ public class ControllerTest extends BeaconTestCase {
         expect(sw.getInputStream()).andReturn(inputStream).anyTimes();
         expect(inputStream.getKey()).andReturn(key).atLeastOnce();
         expect(sw.getFeaturesReply()).andReturn(null).anyTimes();
-        expect(sw.getState()).andReturn(SwitchState.HELLO_SENT).anyTimes();
+        expect(sw.getState()).andReturn(OFSwitchState.HELLO_SENT).anyTimes();
         expect(sw.getSocketChannel()).andReturn(sc).atLeastOnce();
         expect(sc.socket()).andReturn(sock).atLeastOnce();
         expect(inputStream.getIOLoop()).andReturn(ioLoop).atLeastOnce();
@@ -219,7 +220,7 @@ public class ControllerTest extends BeaconTestCase {
         expect(sw.getInputStream()).andReturn(inputStream).anyTimes();
         expect(inputStream.getKey()).andReturn(key).atLeastOnce();
         expect(sw.getFeaturesReply()).andReturn(new OFFeaturesReply()).anyTimes();
-        expect(sw.getState()).andReturn(SwitchState.ACTIVE).anyTimes();
+        expect(sw.getState()).andReturn(OFSwitchState.ACTIVE).anyTimes();
         expect(sw.getSocketChannel()).andReturn(sc).atLeastOnce();
         expect(sw.getId()).andReturn(1L).atLeastOnce();
         expect(sc.socket()).andReturn(sock).atLeastOnce();

@@ -36,6 +36,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import net.beaconcontroller.core.IBeaconProvider;
 import net.beaconcontroller.core.IOFInitializerListener;
 import net.beaconcontroller.core.IOFMessageListener;
+import net.beaconcontroller.core.OFSwitchState;
 import net.beaconcontroller.core.IOFMessageListener.Command;
 import net.beaconcontroller.core.IOFSwitch;
 import net.beaconcontroller.core.IOFSwitchFilter;
@@ -161,7 +162,7 @@ public class Controller implements IBeaconProvider, SelectListener {
         sw.setOutputStream(stream);
         sw.setSocketChannel(sock);
         sw.setBeaconProvider(this);
-        sw.transitionToState(SwitchState.HELLO_SENT);
+        sw.transitionToState(OFSwitchState.HELLO_SENT);
 
         addSwitch(sw);
 
@@ -266,7 +267,7 @@ public class Controller implements IBeaconProvider, SelectListener {
                         case HELLO_SENT:
                             if (m.getType() == OFType.HELLO) {
                                 log.debug("HELLO from {}", sw);
-                                sw.transitionToState(SwitchState.FEATURES_REQUEST_SENT);
+                                sw.transitionToState(OFSwitchState.FEATURES_REQUEST_SENT);
                                 // Send initial Features Request
                                 sw.getOutputStream().write(factory.getMessage(OFType.FEATURES_REQUEST));
                             }
@@ -280,7 +281,7 @@ public class Controller implements IBeaconProvider, SelectListener {
                                 OFStatisticsRequest sr = new OFStatisticsRequest();
                                 sr.setStatisticType(OFStatisticsType.DESC);
                                 sw.getOutputStream().write(sr);
-                                sw.transitionToState(SwitchState.DESCRIPTION_STATISTICS_REQUEST_SENT);
+                                sw.transitionToState(OFSwitchState.DESCRIPTION_STATISTICS_REQUEST_SENT);
                             }
                             break;
                         case DESCRIPTION_STATISTICS_REQUEST_SENT:
@@ -299,7 +300,7 @@ public class Controller implements IBeaconProvider, SelectListener {
                                     sw.getOutputStream().write(config);
                                     sw.getOutputStream().write(factory.getMessage(OFType.BARRIER_REQUEST));
                                     sw.getOutputStream().write(factory.getMessage(OFType.GET_CONFIG_REQUEST));
-                                    sw.transitionToState(SwitchState.GET_CONFIG_REQUEST_SENT);
+                                    sw.transitionToState(OFSwitchState.GET_CONFIG_REQUEST_SENT);
                                 }
                             }
                             break;
@@ -308,7 +309,7 @@ public class Controller implements IBeaconProvider, SelectListener {
                                 OFGetConfigReply cr = (OFGetConfigReply) m;
                                 if (cr.getMissSendLength() == (short)0xffff) {
                                     log.debug("Config Reply from {} confirms miss length set to 0xffff", sw);
-                                    sw.transitionToState(SwitchState.INITIALIZING);
+                                    sw.transitionToState(OFSwitchState.INITIALIZING);
 
                                     CopyOnWriteArrayList<IOFInitializerListener> initializers =
                                             (CopyOnWriteArrayList<IOFInitializerListener>) initializerList.clone();
@@ -361,12 +362,12 @@ public class Controller implements IBeaconProvider, SelectListener {
                                 if (initializers.size() == 0) {
                                     // no initializers remaining
                                     initializerMap.remove(sw);
-                                    sw.transitionToState(SwitchState.ACTIVE);
+                                    sw.transitionToState(OFSwitchState.ACTIVE);
                                     // Add switch to active list
                                     addActiveSwitch(sw);
                                 }
                             } else {
-                                sw.transitionToState(SwitchState.ACTIVE);
+                                sw.transitionToState(OFSwitchState.ACTIVE);
                                 // Add switch to active list
                                 addActiveSwitch(sw);
                             }
@@ -746,7 +747,7 @@ public class Controller implements IBeaconProvider, SelectListener {
     protected void removeSwitch(IOFSwitchExt sw) {
         this.allSwitches.remove(sw);
         // If active remove from DPID indexed map
-        if (SwitchState.ACTIVE == sw.getState()) {
+        if (OFSwitchState.ACTIVE == sw.getState()) {
             if (!this.activeSwitches.remove(sw.getId(), sw)) {
                 log.warn("Removing switch {} has already been replaced", sw);
             }
@@ -837,7 +838,7 @@ public class Controller implements IBeaconProvider, SelectListener {
             log.debug("Remaining initializers for switch {}: {}", sw, list);
             if (list.isEmpty()) {
                 this.initializerMap.remove(swExt);
-                swExt.transitionToState(SwitchState.ACTIVE);
+                swExt.transitionToState(OFSwitchState.ACTIVE);
             } else {
                 queueInitializer(swExt, list.iterator().next());
             }
