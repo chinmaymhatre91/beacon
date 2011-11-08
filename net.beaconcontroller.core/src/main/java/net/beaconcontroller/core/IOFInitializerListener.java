@@ -27,6 +27,14 @@ import org.openflow.protocol.OFMessage;
  */
 public interface IOFInitializerListener {
     /**
+     * Called when it is this initializer's turn to hold the initializer 'lock'
+     * on the switch.  Do not perform any long running computation from this
+     * method, create a thread to handle such computation.
+     * @param sw
+     */
+    public void initializerStart(IOFSwitch sw);
+
+    /**
      * This is the method Beacon uses to call initialization listeners with
      * incoming OpenFlow messages
      * @param sw the OpenFlow switch that sent this message

@@ -91,6 +91,7 @@ public class Controller implements IBeaconProvider, SelectListener {
     protected ExecutorService es;
     protected BasicFactory factory;
     protected boolean immediate = false;
+    protected ExecutorService initializerExecutorService;
     protected CopyOnWriteArrayList<IOFInitializerListener> initializerList;
     protected ConcurrentHashMap<IOFSwitchExt, CopyOnWriteArrayList<IOFInitializerListener>> initializerMap;
     protected String listenAddress;
@@ -308,9 +309,11 @@ public class Controller implements IBeaconProvider, SelectListener {
                                 if (cr.getMissSendLength() == (short)0xffff) {
                                     log.debug("Config Reply from {} confirms miss length set to 0xffff", sw);
                                     sw.transitionToState(SwitchState.INITIALIZING);
+
+                                    CopyOnWriteArrayList<IOFInitializerListener> initializers =
+                                            (CopyOnWriteArrayList<IOFInitializerListener>) initializerList.clone();
                                     // Add all existing initializers to the list
-                                    this.initializerMap.put(sw,
-                                        (CopyOnWriteArrayList<IOFInitializerListener>) initializerList.clone());
+                                    this.initializerMap.put(sw, initializers);
                                     log.debug("Remaining initializers for switch {}: {}", sw, this.initializerMap.get(sw));
 
                                     // Delete all pre-existing flows
@@ -325,6 +328,9 @@ public class Controller implements IBeaconProvider, SelectListener {
                                         sw.getOutputStream().write(fm);
                                         sw.getOutputStream().write(factory.getMessage(OFType.BARRIER_REQUEST));
                                     }
+
+                                    if (initializers.size() > 0)
+                                        queueInitializer(sw, initializers.iterator().next());
                                 } else {
                                     log.error("Switch {} refused to set miss send length to 0xffff, disconnecting", sw);
                                     disconnectSwitch(((OFStream)sw.getInputStream()).getKey(), sw);
@@ -347,6 +353,9 @@ public class Controller implements IBeaconProvider, SelectListener {
                                                 "Error calling initializer listener: {} on switch: {} for message: {}, removing listener",
                                                 new Object[] { listener, sw, m });
                                         initializers.remove(listener);
+                                        // If there is another initializer, queue it up
+                                        if (initializers.size() > 0)
+                                            queueInitializer(sw, initializers.iterator().next());
                                     }
                                 }
                                 if (initializers.size() == 0) {
@@ -490,6 +499,8 @@ public class Controller implements IBeaconProvider, SelectListener {
 
         // Static number of threads equal to processor cores (+1 for listen loop)
         es = Executors.newFixedThreadPool(threadCount+1);
+        // Executor service to run initializers
+        initializerExecutorService = Executors.newFixedThreadPool(2);
 
         // Launch one select loop per threadCount and start running
         for (int i = 0; i < threadCount; ++i) {
@@ -625,6 +636,7 @@ public class Controller implements IBeaconProvider, SelectListener {
         }
 
         es.shutdown();
+        initializerExecutorService.shutdownNow();
         updatesThread.interrupt();
         log.info("Beacon Core Shutdown");
     }
@@ -826,7 +838,17 @@ public class Controller implements IBeaconProvider, SelectListener {
             if (list.isEmpty()) {
                 this.initializerMap.remove(swExt);
                 swExt.transitionToState(SwitchState.ACTIVE);
+            } else {
+                queueInitializer(swExt, list.iterator().next());
             }
         }
+    }
+
+    protected void queueInitializer(final IOFSwitch sw, final IOFInitializerListener initializer) {
+        initializerExecutorService.submit(new Runnable() {
+            @Override
+            public void run() {
+                initializer.initializerStart(sw);
+            }});
     }
 }
