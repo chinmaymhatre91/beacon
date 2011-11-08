@@ -794,13 +794,13 @@ public class Controller implements IBeaconProvider, SelectListener {
     }
 
     @Override
-    public void initializationComplete(IOFSwitch sw, IOFInitializerListener listener) {
+    public void initializerComplete(IOFSwitch sw, IOFInitializerListener initializer) {
         // TODO this cast isn't ideal.. is there a better alternative?
-        log.debug("Initializer for switch {} has completed: {}", sw, listener);
+        log.debug("Initializer for switch {} has completed: {}", sw, initializer);
         IOFSwitchExt swExt = (IOFSwitchExt) sw;
         CopyOnWriteArrayList<IOFInitializerListener> list = this.initializerMap.get(swExt);
         if (list != null) {
-            list.remove(listener);
+            list.remove(initializer);
             log.debug("Remaining initializers for switch {}: {}", sw, list);
             if (list.isEmpty()) {
                 this.initializerMap.remove(swExt);

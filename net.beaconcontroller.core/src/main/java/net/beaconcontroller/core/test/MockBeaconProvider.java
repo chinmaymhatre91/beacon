@@ -119,6 +119,6 @@ public class MockBeaconProvider implements IBeaconProvider {
     }
 
     @Override
-    public void initializationComplete(IOFSwitch sw, IOFInitializerListener listener) {
+    public void initializerComplete(IOFSwitch sw, IOFInitializerListener listener) {
     }
 }
