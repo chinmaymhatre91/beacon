@@ -171,6 +171,7 @@ public class OFSwitchImpl implements IOFSwitchExt {
     /**
      * @param descriptionStatistics the descriptionStatistics to set
      */
+    @Override
     public void setDescriptionStatistics(
             OFDescriptionStatistics descriptionStatistics) {
         this.descriptionStatistics = descriptionStatistics;

@@ -40,9 +40,9 @@ import net.beaconcontroller.core.IOFMessageListener.Command;
 import net.beaconcontroller.core.IOFSwitch;
 import net.beaconcontroller.core.IOFSwitchFilter;
 import net.beaconcontroller.core.IOFSwitchListener;
+import net.beaconcontroller.core.io.internal.IOLoop;
 import net.beaconcontroller.core.io.internal.OFStream;
 import net.beaconcontroller.core.io.internal.SelectListener;
-import net.beaconcontroller.core.io.internal.IOLoop;
 import net.beaconcontroller.packet.IPv4;
 
 import org.openflow.io.OFMessageInStream;
@@ -64,8 +64,12 @@ import org.openflow.protocol.OFMatch;
 import org.openflow.protocol.OFMessage;
 import org.openflow.protocol.OFPort;
 import org.openflow.protocol.OFSetConfig;
+import org.openflow.protocol.OFStatisticsReply;
+import org.openflow.protocol.OFStatisticsRequest;
 import org.openflow.protocol.OFType;
 import org.openflow.protocol.factory.BasicFactory;
+import org.openflow.protocol.statistics.OFDescriptionStatistics;
+import org.openflow.protocol.statistics.OFStatisticsType;
 import org.openflow.util.U16;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -270,15 +274,32 @@ public class Controller implements IBeaconProvider, SelectListener {
                             if (m.getType() == OFType.FEATURES_REPLY) {
                                 log.debug("Features Reply from {}", sw);
                                 sw.setFeaturesReply((OFFeaturesReply) m);
-                                sw.transitionToState(SwitchState.GET_CONFIG_REQUEST_SENT);
-                                // Set config and request to receive the config
-                                OFSetConfig config = (OFSetConfig) factory
-                                        .getMessage(OFType.SET_CONFIG);
-                                config.setMissSendLength((short) 0xffff)
-                                .setLengthU(OFSetConfig.MINIMUM_LENGTH);
-                                sw.getOutputStream().write(config);
-                                sw.getOutputStream().write(factory.getMessage(OFType.BARRIER_REQUEST));
-                                sw.getOutputStream().write(factory.getMessage(OFType.GET_CONFIG_REQUEST));
+
+                                // Send Description Statistics Request
+                                OFStatisticsRequest sr = new OFStatisticsRequest();
+                                sr.setStatisticType(OFStatisticsType.DESC);
+                                sw.getOutputStream().write(sr);
+                                sw.transitionToState(SwitchState.DESCRIPTION_STATISTICS_REQUEST_SENT);
+                            }
+                            break;
+                        case DESCRIPTION_STATISTICS_REQUEST_SENT:
+                            if (m.getType() == OFType.STATS_REPLY) {
+                                OFStatisticsReply sr = (OFStatisticsReply) m;
+                                if (sr.getStatisticType() == OFStatisticsType.DESC && sr.getStatistics().size() > 0) {
+                                    OFDescriptionStatistics desc = (OFDescriptionStatistics) sr.getStatistics().get(0);
+                                    sw.setDescriptionStatistics(desc);
+                                    log.debug("Description Statistics Reply from {}: {}", sw, desc);
+
+                                    // Set config and request to receive the config
+                                    OFSetConfig config = (OFSetConfig) factory
+                                            .getMessage(OFType.SET_CONFIG);
+                                    config.setMissSendLength((short) 0xffff)
+                                    .setLengthU(OFSetConfig.MINIMUM_LENGTH);
+                                    sw.getOutputStream().write(config);
+                                    sw.getOutputStream().write(factory.getMessage(OFType.BARRIER_REQUEST));
+                                    sw.getOutputStream().write(factory.getMessage(OFType.GET_CONFIG_REQUEST));
+                                    sw.transitionToState(SwitchState.GET_CONFIG_REQUEST_SENT);
+                                }
                             }
                             break;
                         case GET_CONFIG_REQUEST_SENT:

@@ -7,6 +7,7 @@ package net.beaconcontroller.core.internal;
 public enum SwitchState {
     HELLO_SENT,
     FEATURES_REQUEST_SENT,
+    DESCRIPTION_STATISTICS_REQUEST_SENT,
     GET_CONFIG_REQUEST_SENT,
     INITIALIZING,
     ACTIVE
