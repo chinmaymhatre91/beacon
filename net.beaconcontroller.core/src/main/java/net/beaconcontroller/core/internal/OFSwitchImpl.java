@@ -20,7 +20,6 @@ import org.openflow.io.OFMessageInStream;
 import org.openflow.protocol.OFFeaturesReply;
 import org.openflow.protocol.OFStatisticsRequest;
 import org.openflow.protocol.OFType;
-import org.openflow.protocol.queue.OFPacketQueue;
 import org.openflow.protocol.statistics.OFDescriptionStatistics;
 import org.openflow.protocol.statistics.OFStatistics;
 import org.openflow.util.HexString;
