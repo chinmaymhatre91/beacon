@@ -332,6 +332,8 @@ public class Controller implements IBeaconProvider, SelectListener {
 
                                     if (initializers.size() > 0)
                                         queueInitializer(sw, initializers.iterator().next());
+                                    else
+                                        advanceInitializers(sw);
                                 } else {
                                     log.error("Switch {} refused to set miss send length to 0xffff, disconnecting", sw);
                                     disconnectSwitch(((OFStream)sw.getInputStream()).getKey(), sw);
@@ -340,36 +342,19 @@ public class Controller implements IBeaconProvider, SelectListener {
                             }
                             break;
                         case INITIALIZING:
-                            // Are there pending initializers for this switch?
                             CopyOnWriteArrayList<IOFInitializerListener> initializers =
                                 initializerMap.get(sw);
-                            if (initializers != null) {
-                                Iterator<IOFInitializerListener> it = initializers.iterator();
-                                if (it.hasNext()) {
-                                    IOFInitializerListener listener = it.next();
-                                    try {
-                                        listener.initializerReceive(sw, m);
-                                    } catch (Exception e) {
-                                        log.error(
-                                                "Error calling initializer listener: {} on switch: {} for message: {}, removing listener",
-                                                new Object[] { listener, sw, m });
-                                        initializers.remove(listener);
-                                        // If there is another initializer, queue it up
-                                        if (initializers.size() > 0)
-                                            queueInitializer(sw, initializers.iterator().next());
-                                    }
+                            Iterator<IOFInitializerListener> it = initializers.iterator();
+                            if (it.hasNext()) {
+                                IOFInitializerListener listener = it.next();
+                                try {
+                                    listener.initializerReceive(sw, m);
+                                } catch (Exception e) {
+                                    log.error(
+                                            "Error calling initializer listener: {} on switch: {} for message: {}, removing listener",
+                                            new Object[] { listener, sw, m });
+                                    advanceInitializers(sw);
                                 }
-                                if (initializers.size() == 0) {
-                                    // no initializers remaining
-                                    initializerMap.remove(sw);
-                                    sw.transitionToState(OFSwitchState.ACTIVE);
-                                    // Add switch to active list
-                                    addActiveSwitch(sw);
-                                }
-                            } else {
-                                sw.transitionToState(OFSwitchState.ACTIVE);
-                                // Add switch to active list
-                                addActiveSwitch(sw);
                             }
                             break;
                         case ACTIVE:
@@ -832,17 +817,7 @@ public class Controller implements IBeaconProvider, SelectListener {
         // TODO this cast isn't ideal.. is there a better alternative?
         log.debug("Initializer for switch {} has completed: {}", sw, initializer);
         IOFSwitchExt swExt = (IOFSwitchExt) sw;
-        CopyOnWriteArrayList<IOFInitializerListener> list = this.initializerMap.get(swExt);
-        if (list != null) {
-            list.remove(initializer);
-            log.debug("Remaining initializers for switch {}: {}", sw, list);
-            if (list.isEmpty()) {
-                this.initializerMap.remove(swExt);
-                swExt.transitionToState(OFSwitchState.ACTIVE);
-            } else {
-                queueInitializer(swExt, list.iterator().next());
-            }
-        }
+        advanceInitializers(swExt);
     }
 
     protected void queueInitializer(final IOFSwitch sw, final IOFInitializerListener initializer) {
@@ -851,5 +826,26 @@ public class Controller implements IBeaconProvider, SelectListener {
             public void run() {
                 initializer.initializerStart(sw);
             }});
+    }
+
+    protected void advanceInitializers(IOFSwitchExt sw) {
+        CopyOnWriteArrayList<IOFInitializerListener> initializers = initializerMap.get(sw);
+
+        // Remove first initializer if it exists
+        Iterator<IOFInitializerListener> it = initializers.iterator();
+        if (it.hasNext()) {
+            IOFInitializerListener initializer = it.next();
+            initializers.remove(initializer);
+            log.debug("Remaining initializers for switch {}: {}", sw, initializers);
+        }
+
+        if (it.hasNext()) {
+            IOFInitializerListener initializer = it.next();
+            queueInitializer(sw, initializer);
+        } else {
+            sw.transitionToState(OFSwitchState.ACTIVE);
+            // Add switch to active list
+            addActiveSwitch(sw);
+        }
     }
 }
