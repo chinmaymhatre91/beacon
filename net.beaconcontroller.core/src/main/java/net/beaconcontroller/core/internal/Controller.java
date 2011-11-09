@@ -892,4 +892,9 @@ public class Controller implements IBeaconProvider, SelectListener {
     public void setInitializerOrdering(String initializerOrdering) {
         this.initializerOrdering = initializerOrdering;
     }
+
+    @Override
+    public List<IOFInitializerListener> getInitializers() {
+        return Collections.unmodifiableList(this.initializerList);
+    }
 }

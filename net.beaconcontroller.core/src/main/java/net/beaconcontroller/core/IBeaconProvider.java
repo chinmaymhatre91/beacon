@@ -80,4 +80,11 @@ public interface IBeaconProvider {
      * @return listeners
      */
     public Map<OFType, List<IOFMessageListener>> getListeners();
+
+    /**
+     * Return a non-modifiable list of all registered initializers
+     *
+     * @return initializers
+     */
+    public List<IOFInitializerListener> getInitializers();
 }

@@ -121,4 +121,9 @@ public class MockBeaconProvider implements IBeaconProvider {
     @Override
     public void initializerComplete(IOFSwitch sw, IOFInitializerListener listener) {
     }
+
+    @Override
+    public List<IOFInitializerListener> getInitializers() {
+        throw new RuntimeException("Not implemented");
+    }
 }
