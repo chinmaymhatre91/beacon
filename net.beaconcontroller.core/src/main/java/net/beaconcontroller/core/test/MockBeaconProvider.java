@@ -115,7 +115,7 @@ public class MockBeaconProvider implements IBeaconProvider {
     }
 
     @Override
-    public void removeOFInitListener(IOFInitializerListener listener) {
+    public void removeOFInitializerListener(IOFInitializerListener listener) {
     }
 
     @Override

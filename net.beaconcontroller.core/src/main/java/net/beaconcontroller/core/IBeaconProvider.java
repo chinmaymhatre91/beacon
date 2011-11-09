@@ -28,7 +28,7 @@ public interface IBeaconProvider {
      * switch
      * @param listener
      */
-    public void removeOFInitListener(IOFInitializerListener listener);
+    public void removeOFInitializerListener(IOFInitializerListener listener);
 
     /**
      * Once an initializer has initialized a switch it calls this method

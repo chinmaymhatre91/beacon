@@ -801,7 +801,7 @@ public class Controller implements IBeaconProvider, SelectListener {
     }
 
     @Override
-    public void removeOFInitListener(IOFInitializerListener listener) {
+    public void removeOFInitializerListener(IOFInitializerListener listener) {
         this.initializerList.remove(listener);
         Iterator<Map.Entry<IOFSwitchExt, CopyOnWriteArrayList<IOFInitializerListener>>> it =
             this.initializerMap.entrySet().iterator();
