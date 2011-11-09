@@ -94,6 +94,7 @@ public class Controller implements IBeaconProvider, SelectListener {
     protected boolean immediate = false;
     protected ExecutorService initializerExecutorService;
     protected CopyOnWriteArrayList<IOFInitializerListener> initializerList;
+    protected Object initializerLock;
     protected ConcurrentHashMap<IOFSwitchExt, CopyOnWriteArrayList<IOFInitializerListener>> initializerMap;
     protected String initializerOrdering;
     protected String listenAddress;
@@ -129,6 +130,7 @@ public class Controller implements IBeaconProvider, SelectListener {
             new ConcurrentHashMap<OFType, List<IOFMessageListener>>();
         this.switchListeners = new CopyOnWriteArraySet<IOFSwitchListener>();
         this.updates = new LinkedBlockingQueue<Update>();
+        this.initializerLock = new Object();
     }
 
     public void handleEvent(SelectionKey key, Object arg) throws IOException {
@@ -824,28 +826,34 @@ public class Controller implements IBeaconProvider, SelectListener {
 
     @Override
     public void addOFInitializerListener(IOFInitializerListener listener) {
-        if (initializerOrdering != null) {
-            String order = initializerOrdering;
-            orderedInsert(order, this.initializerList, listener, new IOrderName<IOFInitializerListener>() {
-                @Override
-                public String get(IOFInitializerListener obj) {
-                    return obj.getInitializerName();
-                }
-            });
-        } else {
-            this.initializerList.add(listener);
+        // Locked to prevent weird insertion order races
+        synchronized (this.initializerLock) {
+            if (initializerOrdering != null) {
+                String order = initializerOrdering;
+                orderedInsert(order, this.initializerList, listener, new IOrderName<IOFInitializerListener>() {
+                    @Override
+                    public String get(IOFInitializerListener obj) {
+                        return obj.getInitializerName();
+                    }
+                });
+            } else {
+                this.initializerList.add(listener);
+            }
         }
     }
 
     @Override
     public void removeOFInitializerListener(IOFInitializerListener listener) {
-        this.initializerList.remove(listener);
-        Iterator<Map.Entry<IOFSwitchExt, CopyOnWriteArrayList<IOFInitializerListener>>> it =
-            this.initializerMap.entrySet().iterator();
-        while (it.hasNext()) {
-            Map.Entry<IOFSwitchExt, CopyOnWriteArrayList<IOFInitializerListener>> entry =
-                it.next();
-            entry.getValue().remove(listener);
+        // Locked to prevent weird insertion order races
+        synchronized (this.initializerLock) {
+            this.initializerList.remove(listener);
+            Iterator<Map.Entry<IOFSwitchExt, CopyOnWriteArrayList<IOFInitializerListener>>> it =
+                this.initializerMap.entrySet().iterator();
+            while (it.hasNext()) {
+                Map.Entry<IOFSwitchExt, CopyOnWriteArrayList<IOFInitializerListener>> entry =
+                    it.next();
+                entry.getValue().remove(listener);
+            }
         }
     }
 
