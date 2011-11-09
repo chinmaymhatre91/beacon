@@ -95,6 +95,7 @@ public class Controller implements IBeaconProvider, SelectListener {
     protected ExecutorService initializerExecutorService;
     protected CopyOnWriteArrayList<IOFInitializerListener> initializerList;
     protected ConcurrentHashMap<IOFSwitchExt, CopyOnWriteArrayList<IOFInitializerListener>> initializerMap;
+    protected String initializerOrdering;
     protected String listenAddress;
     protected int listenPort = 6633;
     protected IOLoop listenerIOLoop;
@@ -430,37 +431,63 @@ public class Controller implements IBeaconProvider, SelectListener {
             listeners = messageListeners.get(type);
         }
 
-        if (callbackOrdering != null &&
-                callbackOrdering.containsKey(type.toString()) &&
-                callbackOrdering.get(type.toString()).contains(listener.getName())) {
+        if (callbackOrdering != null && callbackOrdering.containsKey(type.toString())) {
             String order = callbackOrdering.get(type.toString());
-            String[] orderArray = order.split(",");
-            int myPos = 0;
-            for (int i = 0; i < orderArray.length; ++i) {
-                orderArray[i] = orderArray[i].trim();
-                if (orderArray[i].equals(listener.getName()))
-                    myPos = i;
-            }
-            List<String> beforeList = Arrays.asList(Arrays.copyOfRange(orderArray, 0, myPos));
-
-            boolean added = false;
-            // only try and walk if there are already listeners
-            if (listeners.size() > 0) {
-                // Walk through and determine where to insert
-                for (int i = 0; i < listeners.size(); ++i) {
-                    if (beforeList.contains(listeners.get(i).getName()))
-                        continue;
-                    listeners.add(i, listener);
-                    added = true;
-                    break;
+            orderedInsert(order, listeners, listener, new IOrderName<IOFMessageListener>() {
+                @Override
+                public String get(IOFMessageListener obj) {
+                    return obj.getName();
                 }
-            }
-            if (!added) {
-                listeners.add(listener);
-            }
-
+            });
         } else {
             listeners.add(listener);
+        }
+    }
+
+    /**
+     * This function takes a String of the format "name,name2,name3" used to
+     * orderly insert an object into an existing list.  This function will try
+     * and insert an incoming object relative to any other objects that already
+     * exist in the list and in the order String.  If the existing objects are
+     * not ahead of this object in the order list it will insert before,
+     * otherwise it will insert after the object closest to it in the ordering
+     * list that exists in the list. If the order String does not contain the
+     * incoming object it is appended to the end.
+     *
+     * @param order String specifying the order
+     * @param objects list of objects already in the list
+     * @param object the object to insert
+     * @param orderName a function to retrieve the name of the object for ordering
+     */
+    protected <T> void orderedInsert(String order, List<T> objects, T object, IOrderName<T> orderName) {
+        if (!order.contains(orderName.get(object))) {
+            objects.add(object);
+            return;
+        }
+
+        String[] orderArray = order.split(",");
+        int myPos = 0;
+        for (int i = 0; i < orderArray.length; ++i) {
+            orderArray[i] = orderArray[i].trim();
+            if (orderArray[i].equals(orderName.get(object)))
+                myPos = i;
+        }
+        List<String> beforeList = Arrays.asList(Arrays.copyOfRange(orderArray, 0, myPos));
+
+        boolean added = false;
+        // only try and walk if there are already listeners
+        if (objects.size() > 0) {
+            // Walk through and determine where to insert
+            for (int i = 0; i < objects.size(); ++i) {
+                if (beforeList.contains(orderName.get(objects.get(i))))
+                    continue;
+                objects.add(i, object);
+                added = true;
+                break;
+            }
+        }
+        if (!added) {
+            objects.add(object);
         }
     }
 
@@ -797,7 +824,17 @@ public class Controller implements IBeaconProvider, SelectListener {
 
     @Override
     public void addOFInitializerListener(IOFInitializerListener listener) {
-        this.initializerList.add(listener);
+        if (initializerOrdering != null) {
+            String order = initializerOrdering;
+            orderedInsert(order, this.initializerList, listener, new IOrderName<IOFInitializerListener>() {
+                @Override
+                public String get(IOFInitializerListener obj) {
+                    return obj.getInitializerName();
+                }
+            });
+        } else {
+            this.initializerList.add(listener);
+        }
     }
 
     @Override
@@ -847,5 +884,12 @@ public class Controller implements IBeaconProvider, SelectListener {
             // Add switch to active list
             addActiveSwitch(sw);
         }
+    }
+
+    /**
+     * @param initializerOrdering the initializerOrdering to set
+     */
+    public void setInitializerOrdering(String initializerOrdering) {
+        this.initializerOrdering = initializerOrdering;
     }
 }
