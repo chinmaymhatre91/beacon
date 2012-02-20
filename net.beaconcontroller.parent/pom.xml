@@ -12,8 +12,9 @@
   <properties>
     <compiler.version>2.3.2</compiler.version>
     <openflow.version>1.0.2</openflow.version>
-    <surefire.version>2.6</surefire.version>
-    <tycho.version>0.10.0</tycho.version>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <surefire.version>2.12</surefire.version>
+    <tycho.version>0.14.0</tycho.version>
   </properties>
   <modules>
     <module>../target-platform</module>
@@ -54,7 +55,7 @@
       </snapshots>
       <id>sonatype-releases</id>
       <name>Sonatype Plugin Repository</name>
-      <url>http://repository.sonatype.org/content/repositories/releases</url>
+      <url>https://oss.sonatype.org/content/repositories/releases/</url>
     </pluginRepository>
     <pluginRepository>
       <releases>
@@ -81,13 +82,13 @@
     <sourceDirectory>src/main/java</sourceDirectory>
     <plugins>
       <plugin>
-        <groupId>org.sonatype.tycho</groupId>
+        <groupId>org.eclipse.tycho</groupId>
         <artifactId>tycho-maven-plugin</artifactId>
         <version>${tycho.version}</version>
         <extensions>true</extensions>
       </plugin>
       <plugin>
-        <groupId>org.sonatype.tycho</groupId>
+        <groupId>org.eclipse.tycho</groupId>
         <artifactId>target-platform-configuration</artifactId>
         <version>${tycho.version}</version>
         <configuration>
@@ -126,7 +127,7 @@
             <artifact>
               <groupId>net.beaconcontroller</groupId>
               <artifactId>target-platform</artifactId>
-              <version>1.0.0</version>
+              <version>${project.version}</version>
               <classifier>main</classifier>
             </artifact>
           </target>
