@@ -86,7 +86,7 @@ public class Routing implements IOFMessageListener, IDeviceManagerAware {
                  */
                 if (packetOutDirectly) {
                     pushRoute(in.getMessageFactory(), match, route, dstDevice, 0xffffffff);
-                    pushPacketDirect(in.getMessageFactory(), sw, match, pi, dstDevice);
+                    pushPacketDirect(in.getMessageFactory(), dstDevice.getSw(), match, pi, dstDevice);
                 } else {
                     pushRoute(in.getMessageFactory(), match, route, dstDevice, pi.getBufferId());
 
