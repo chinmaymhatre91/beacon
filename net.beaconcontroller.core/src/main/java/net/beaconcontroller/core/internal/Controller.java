@@ -212,9 +212,11 @@ public class Controller implements IBeaconProvider, SelectListener {
             }
         } catch (IOException e) {
             // if we have an exception, disconnect the switch
+            log.error("Exception during IOloop", e);
             disconnectSwitch(key, sw);
         } catch (CancelledKeyException e) {
             // if we have an exception, disconnect the switch
+            log.error("Exception during IOloop", e);
             disconnectSwitch(key, sw);
         }
     }

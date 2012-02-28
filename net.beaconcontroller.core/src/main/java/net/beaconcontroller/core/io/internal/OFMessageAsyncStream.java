@@ -52,17 +52,21 @@ public class OFMessageAsyncStream implements OFMessageInStream, OFMessageOutStre
 
     @Override
     public List<OFMessage> read(int limit) throws IOException {
-        List<OFMessage> l;
-        int read = sock.read(inBuf);
-        if (read == -1)
-            return null;
-        inBuf.flip();
-        l = messageFactory.parseMessages(inBuf, limit);
-        if (inBuf.hasRemaining())
-            inBuf.compact();
-        else
-            inBuf.clear();
-        return l;
+        try {
+            List<OFMessage> l;
+            int read = sock.read(inBuf);
+            if (read == -1)
+                return null;
+            inBuf.flip();
+            l = messageFactory.parseMessages(inBuf, limit);
+            if (inBuf.hasRemaining())
+                inBuf.compact();
+            else
+                inBuf.clear();
+            return l;
+        } catch (Exception e) {
+            throw new IOException("Failure reading and decoding OpenFlow messages", e);
+        }
     }
 
     protected void appendMessageToOutBuf(OFMessage m) throws IOException {
