@@ -58,6 +58,7 @@
       <plugin id="org.apache.ant"/>
       <plugin id="org.apache.commons.fileupload"/>
       <plugin id="org.apache.commons.io"/>
+      <plugin id="org.apache.commons.lang3"/>
       <plugin id="org.eclipse.equinox.ds" version="1.2.0.v20100507"/>
       <plugin id="org.eclipse.equinox.log"/>
       <plugin id="org.eclipse.equinox.util"/>
@@ -113,6 +114,7 @@
       <plugin id="org.apache.ant" autoStart="true" startLevel="0" />
       <plugin id="org.apache.commons.fileupload" autoStart="true" startLevel="0" />
       <plugin id="org.apache.commons.io" autoStart="true" startLevel="0" />
+      <plugin id="org.apache.commons.lang3" autoStart="true" startLevel="0" />
       <plugin id="org.eclipse.equinox.ds" autoStart="true" startLevel="1" />
       <plugin id="org.eclipse.equinox.log" autoStart="true" startLevel="1" />
       <plugin id="org.eclipse.equinox.util" autoStart="true" startLevel="0" />

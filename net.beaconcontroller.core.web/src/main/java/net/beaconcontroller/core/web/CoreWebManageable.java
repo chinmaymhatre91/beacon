@@ -34,6 +34,7 @@ import net.beaconcontroller.web.view.section.JspSection;
 import net.beaconcontroller.web.view.section.StringSection;
 import net.beaconcontroller.web.view.section.TableSection;
 
+import org.openflow.protocol.OFFlowMod;
 import org.openflow.protocol.OFMatch;
 import org.openflow.protocol.OFPort;
 import org.openflow.protocol.OFStatisticsRequest;
@@ -310,7 +311,7 @@ public class CoreWebManageable implements BundleContextAware, IWebManageable {
             data.addAll((Collection<? extends OFFlowStatisticsReply>) stats);
         }
         DataTableJsonView<OFFlowStatisticsReply> view = new DataTableJsonView<OFFlowStatisticsReply>(
-                data, new OFFlowStatisticsReplyDataTableFormatCallback());
+                data, new OFFlowStatisticsReplyDataTableFormatCallback(switchId));
         return view;
     }
 
@@ -322,6 +323,27 @@ public class CoreWebManageable implements BundleContextAware, IWebManageable {
         model.put("switchId", switchId);
         model.put("switchIdEsc", switchId.replaceAll(":", ""));
         layout.addSection(new JspSection("flows.jsp", model), null);
+        return BeaconViewResolver.SIMPLE_VIEW;
+    }
+
+    @RequestMapping("/switch/{switchId}/flow/{flowId}/del")
+    public String delFlow(@PathVariable String switchId,
+            @PathVariable String flowId, Map<String, Object> model) {
+        OFMatch match = new OFMatch();
+        match.fromString(flowId);
+        OFFlowMod mod = new OFFlowMod();
+        mod.setCommand(OFFlowMod.OFPFC_DELETE)
+            .setMatch(match)
+            .setOutPort(OFPort.OFPP_NONE);
+
+        IOFSwitch sw = beaconProvider.getSwitches().get(
+                HexString.toLong(switchId));
+        try {
+            sw.getOutputStream().write(mod);
+        } catch (IOException e) {
+            log.error("Failure writing delete flowmod", e);
+        }
+
         return BeaconViewResolver.SIMPLE_VIEW;
     }
 

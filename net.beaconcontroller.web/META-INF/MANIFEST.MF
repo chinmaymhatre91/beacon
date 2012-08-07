@@ -18,6 +18,7 @@ Import-Package:
  net.beaconcontroller.packet,
  net.beaconcontroller.util,
  org.apache.commons.fileupload;version="1.2.2",
+ org.apache.commons.lang3;version="3.1.0",
  org.apache.taglibs.standard.resources;version="1.1.2",
  org.apache.taglibs.standard.tag.common.core;version="1.1.2",
  org.apache.taglibs.standard.tag.common.fmt;version="1.1.2",

@@ -9,6 +9,7 @@ import java.io.IOException;
 import net.beaconcontroller.packet.IPv4;
 import net.beaconcontroller.web.view.json.DataTableJsonView.DataTableFormatCallback;
 
+import org.apache.commons.lang3.StringEscapeUtils;
 import org.codehaus.jackson.JsonGenerator;
 import org.openflow.protocol.action.OFAction;
 import org.openflow.protocol.action.OFActionOutput;
@@ -25,6 +26,13 @@ import org.openflow.util.U8;
  */
 public class OFFlowStatisticsReplyDataTableFormatCallback implements
         DataTableFormatCallback<OFFlowStatisticsReply> {
+
+    protected String switchId;
+
+    public OFFlowStatisticsReplyDataTableFormatCallback(String switchId) {
+        super();
+        this.switchId = switchId;
+    }
 
     @Override
     public void format(OFFlowStatisticsReply data, JsonGenerator jg) throws IOException {
@@ -55,5 +63,8 @@ public class OFFlowStatisticsReplyDataTableFormatCallback implements
             }
         }
         jg.writeString(outPorts.toString());
+        String url = StringEscapeUtils.escapeHtml3("/wm/core/switch/"+
+                switchId+"/flow/"+data.getMatch().toString()+"/del");
+        jg.writeString("<a href=\""+url+"\">del</a>");
     }
 }

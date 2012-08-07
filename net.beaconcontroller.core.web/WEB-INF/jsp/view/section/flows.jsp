@@ -28,6 +28,7 @@
           <th>Hard TO</th>
           <th>Cookie</th>
           <th>Out Port(s)</th>
+          <th>Cmd</th>
         </tr>
       </thead>
     </table>
