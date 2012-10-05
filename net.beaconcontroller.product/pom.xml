@@ -41,9 +41,14 @@
           </execution>
         </executions>
         <configuration>
+          <formats>
+            <linux>tar.gz</linux>
+            <macosx>tar.gz</macosx>
+          </formats>
           <products>
             <product>
               <id>beacon.product.id</id>
+              <rootFolder>beacon-${project.version}</rootFolder>
             </product>
           </products>
         </configuration>

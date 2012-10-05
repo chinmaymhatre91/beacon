@@ -19,7 +19,7 @@
     </encoder>
   </appender>
 
-  <root level="error">
+  <root level="info">
     <appender-ref ref="STDOUT" />
     <appender-ref ref="beacon.log" />
   </root>
