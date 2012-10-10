@@ -131,6 +131,7 @@ public class Controller implements IBeaconProvider, SelectListener {
         this.switchListeners = new CopyOnWriteArraySet<IOFSwitchListener>();
         this.updates = new LinkedBlockingQueue<Update>();
         this.initializerLock = new Object();
+        this.callbackOrdering = new HashMap<String, String>();
     }
 
     public void handleEvent(SelectionKey key, Object arg) throws IOException {
@@ -906,5 +907,9 @@ public class Controller implements IBeaconProvider, SelectListener {
     @Override
     public List<IOFInitializerListener> getInitializers() {
         return Collections.unmodifiableList(this.initializerList);
+    }
+
+    public Map<String, String> getCallbackOrdering() {
+        return callbackOrdering;
     }
 }
