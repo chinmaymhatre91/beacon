@@ -18,6 +18,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import net.beaconcontroller.core.IBeaconProvider;
@@ -92,7 +93,7 @@ public class TopologyImpl implements IOFMessageListener, IOFSwitchListener, ITop
      */
     protected Map<IOFSwitch, Set<LinkTuple>> switchLinks;
     protected Timer timeoutLinksTimer;
-    protected Set<ITopologyAware> topologyAware;
+    protected AtomicReference<Set<ITopologyAware>> topologyAware;
     protected BlockingQueue<Update> updates;
     protected Thread updatesThread;
 
@@ -124,6 +125,7 @@ public class TopologyImpl implements IOFMessageListener, IOFSwitchListener, ITop
     public TopologyImpl() {
         this.lock = new ReentrantReadWriteLock();
         this.updates = new LinkedBlockingQueue<Update>();
+        this.topologyAware = new AtomicReference<Set<ITopologyAware>>();
     }
 
     protected void startUp() {
@@ -154,8 +156,9 @@ public class TopologyImpl implements IOFMessageListener, IOFSwitchListener, ITop
                 while (true) {
                     try {
                         Update update = updates.take();
-                        if (topologyAware != null) {
-                            for (ITopologyAware ta : topologyAware) {
+                        Set<ITopologyAware> tas = topologyAware.get();
+                        if (tas != null) {
+                            for (ITopologyAware ta : tas) {
                                 try {
                                     ta.linkUpdate(update.src, update.srcPort,
                                             update.dst, update.dstPort,
@@ -492,7 +495,6 @@ public class TopologyImpl implements IOFMessageListener, IOFSwitchListener, ITop
      * @param topologyAware the topologyAware to set
      */
     public void setTopologyAware(Set<ITopologyAware> topologyAware) {
-        // TODO make this a copy on write set or lock it somehow
-        this.topologyAware = topologyAware;
+        this.topologyAware.set(topologyAware);
     }
 }
