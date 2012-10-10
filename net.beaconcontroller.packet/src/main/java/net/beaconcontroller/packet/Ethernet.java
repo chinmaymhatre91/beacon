@@ -199,6 +199,19 @@ public class Ethernet extends BasePacket {
         return mac;
     }
 
+    /**
+     * Accepts a MAC address of the form 00:aa:11:bb:22:cc, case does not
+     * matter, and returns the corresponding long, where the MAC bytes are set
+     * on the lower order bytes of the long.
+     *
+     * @param macAddress
+     *            in String format
+     * @return a long containing the mac address bytes
+     */
+    public static long toLong(String macAddress) {
+        return toLong(toMACAddress(macAddress));
+    }
+
     /* (non-Javadoc)
      * @see java.lang.Object#hashCode()
      */
