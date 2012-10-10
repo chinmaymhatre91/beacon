@@ -4,6 +4,7 @@
  */
 package net.beaconcontroller.core;
 
+import java.net.InetAddress;
 import java.util.List;
 import java.util.Map;
 
@@ -87,4 +88,20 @@ public interface IBeaconProvider {
      * @return initializers
      */
     public List<IOFInitializerListener> getInitializers();
+
+    /**
+     * Returns an object containing the IP address that Beacon
+     * is listening on for switch connections.
+     *
+     * @return
+     */
+    public InetAddress getListeningIPAddress();
+
+    /**
+     * Returns an object containing the port that Beacon
+     * is listening on for switch connections.
+     *
+     * @return
+     */
+    public int getListeningPort();
 }

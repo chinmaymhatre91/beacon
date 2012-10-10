@@ -135,7 +135,10 @@ public class CoreWebManageable implements BundleContextAware, IWebManageable {
         // Description
         layout.addSection(
                 new StringSection("Welcome",
-                        "Thanks for using Beacon!"),
+                        "Thanks for using Beacon! Beacon is listening for connections at " +
+                (beaconProvider.getListeningIPAddress().isAnyLocalAddress() ? ""
+                        : beaconProvider.getListeningIPAddress().getHostAddress()) +
+                " port " + beaconProvider.getListeningPort() + "."),
                 TwoColumnLayout.COLUMN1);
 
         // Switch List Table

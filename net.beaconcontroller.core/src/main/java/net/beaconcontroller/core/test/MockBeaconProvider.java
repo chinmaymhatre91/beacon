@@ -5,6 +5,7 @@
 package net.beaconcontroller.core.test;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -125,5 +126,17 @@ public class MockBeaconProvider implements IBeaconProvider {
     @Override
     public List<IOFInitializerListener> getInitializers() {
         throw new RuntimeException("Not implemented");
+    }
+
+    @Override
+    public InetAddress getListeningIPAddress() {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public int getListeningPort() {
+        // TODO Auto-generated method stub
+        return 0;
     }
 }

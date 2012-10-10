@@ -9,6 +9,8 @@ package net.beaconcontroller.core.internal;
 
 import java.io.IOException;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.nio.channels.CancelledKeyException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.ServerSocketChannel;
@@ -911,5 +913,15 @@ public class Controller implements IBeaconProvider, SelectListener {
 
     public Map<String, String> getCallbackOrdering() {
         return callbackOrdering;
+    }
+
+    @Override
+    public InetAddress getListeningIPAddress() {
+        return listenSock.socket().getInetAddress();
+    }
+
+    @Override
+    public int getListeningPort() {
+        return listenSock.socket().getLocalPort();
     }
 }
