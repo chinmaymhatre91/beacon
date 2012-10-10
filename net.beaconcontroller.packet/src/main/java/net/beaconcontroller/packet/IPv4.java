@@ -18,11 +18,13 @@ import java.util.Map;
  *
  */
 public class IPv4 extends BasePacket {
+    public static byte PROTOCOL_ICMP = 0x1;
     public static byte PROTOCOL_UDP = 0x11;
     public static Map<Byte, Class<? extends IPacket>> protocolClassMap;
 
     static {
         protocolClassMap = new HashMap<Byte, Class<? extends IPacket>>();
+        protocolClassMap.put(PROTOCOL_ICMP, ICMP.class);
         protocolClassMap.put(PROTOCOL_UDP, UDP.class);
     }
 
@@ -288,6 +290,9 @@ public class IPv4 extends BasePacket {
                     : payloadData.length));
         }
 
+        if (this.parent != null && this.parent instanceof Ethernet)
+            ((Ethernet)this.parent).setEtherType(Ethernet.TYPE_IPv4);
+
         byte[] data = new byte[this.totalLength];
         ByteBuffer bb = ByteBuffer.wrap(data);
 
@@ -295,7 +300,7 @@ public class IPv4 extends BasePacket {
         bb.put(this.diffServ);
         bb.putShort(this.totalLength);
         bb.putShort(this.identification);
-        bb.putShort((short) (((this.flags & 0x7) << 29) | (this.fragmentOffset & 0x1fff)));
+        bb.putShort((short) (((this.flags & 0x7) << 13) | (this.fragmentOffset & 0x1fff)));
         bb.put(this.ttl);
         bb.put(this.protocol);
         bb.putShort(this.checksum);
@@ -333,7 +338,7 @@ public class IPv4 extends BasePacket {
         this.totalLength = bb.getShort();
         this.identification = bb.getShort();
         sscratch = bb.getShort();
-        this.flags = (byte) ((sscratch >> 29) & 0x7);
+        this.flags = (byte) ((sscratch >> 13) & 0x7);
         this.fragmentOffset = (short) (sscratch & 0x1fff);
         this.ttl = bb.get();
         this.protocol = bb.get();
