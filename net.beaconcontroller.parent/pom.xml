@@ -14,7 +14,7 @@
     <openflow.version>1.0.2</openflow.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <surefire.version>2.12</surefire.version>
-    <tycho.version>0.14.0</tycho.version>
+    <tycho.version>0.15.0</tycho.version>
   </properties>
   <modules>
     <module>../target-platform</module>
