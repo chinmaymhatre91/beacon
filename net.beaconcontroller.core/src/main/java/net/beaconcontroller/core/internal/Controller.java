@@ -226,16 +226,25 @@ public class Controller implements IBeaconProvider, SelectListener {
      * Disconnect the switch from Beacon
      */
     protected void disconnectSwitch(SelectionKey key, IOFSwitchExt sw) {
-        key.cancel();
-        OFStream stream = (OFStream) sw.getInputStream();
-        stream.getIOLoop().removeStream(stream);
-        removeSwitch(sw);
-        try {
-            sw.getSocketChannel().socket().close();
-        } catch (IOException e1) {
+        /**
+         * Must synchronize here to ensure we don't transition into active
+         * while simultaneously being disconnected.
+         */
+        synchronized (sw) {
+            key.cancel();
+            OFStream stream = (OFStream) sw.getInputStream();
+            stream.getIOLoop().removeStream(stream);
+            removeSwitch(sw);
+            try {
+                sw.getSocketChannel().socket().close();
+            } catch (IOException e1) {
+            }
+            this.initializerMap.remove(sw);
+            if (!OFSwitchState.DISCONNECTED.equals(sw.getState())) {
+                sw.transitionToState(OFSwitchState.DISCONNECTED);
+            }
+            log.info("Switch disconnected {}", sw);
         }
-        this.initializerMap.remove(sw);
-        log.info("Switch disconnected {}", sw);
     }
 
     /**
@@ -271,6 +280,9 @@ public class Controller implements IBeaconProvider, SelectListener {
                     // fall through intentionally so error can be listened for
                 default:
                     switch (sw.getState()) {
+                        case DISCONNECTED:
+                            log.info("Switch {} in state DISCONNECTED, exiting message processing loop", sw);
+                            return;
                         case HELLO_SENT:
                             if (m.getType() == OFType.HELLO) {
                                 log.debug("HELLO from {}", sw);
@@ -892,9 +904,18 @@ public class Controller implements IBeaconProvider, SelectListener {
             IOFInitializerListener initializer = it.next();
             queueInitializer(sw, initializer);
         } else {
-            sw.transitionToState(OFSwitchState.ACTIVE);
-            // Add switch to active list
-            addActiveSwitch(sw);
+            /**
+             * Must synchronize here to ensure we don't transition into active
+             * while simultaneously being disconnected.
+             */
+            synchronized (sw) {
+                if (!OFSwitchState.DISCONNECTED.equals(sw.getState())) {
+                    sw.transitionToState(OFSwitchState.ACTIVE);
+                    // Add switch to active list
+                    addActiveSwitch(sw);
+                }
+                initializerMap.remove(sw);
+            }
         }
     }
 

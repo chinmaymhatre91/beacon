@@ -5,6 +5,7 @@
 package net.beaconcontroller.core;
 
 public enum OFSwitchState {
+    DISCONNECTED,
     HELLO_SENT,
     FEATURES_REQUEST_SENT,
     DESCRIPTION_STATISTICS_REQUEST_SENT,
