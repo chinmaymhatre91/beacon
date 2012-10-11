@@ -11,7 +11,7 @@
   <packaging>pom</packaging>
   <properties>
     <compiler.version>2.3.2</compiler.version>
-    <openflow.version>1.0.2</openflow.version>
+    <openflowj.version>1.0.2</openflowj.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <surefire.version>2.12</surefire.version>
     <tycho.version>0.15.0</tycho.version>
@@ -137,6 +137,10 @@
         <version>2.7</version>
         <configuration>
           <aggregate>true</aggregate>
+          <detectLinks>true</detectLinks>
+          <links>
+            <link>https://openflow.stanford.edu/static/openflowj/releases/${openflowj.version}/apidocs/</link>
+          </links>
         </configuration>
       </plugin>
     </plugins>
@@ -145,7 +149,7 @@
     <dependency>
       <groupId>org.openflow</groupId>
       <artifactId>openflowj</artifactId>
-      <version>${openflow.version}</version>
+      <version>${openflowj.version}</version>
     </dependency>
     <!-- Following dep to solve a failure when running javadoc:javadoc -->
     <dependency>
