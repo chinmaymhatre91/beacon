@@ -18,6 +18,11 @@ fi
 
 VERSION=$1
 
+cd net.beaconcontroller.parent
+mvn clean
+mvn package
+cd ..
+
 # Delete any existing archives
 for ARCHIVE_NAME in "${NEW_ARCHIVE_NAMES[@]}"; do
     rm -rf ${CWD}/${NEW_ARCHIVE_DIR}${ARCHIVE_NAME//version/$VERSION}
@@ -25,7 +30,7 @@ done
 rm -rf ${CWD}/dist/beacon-${VERSION}-source.tar.gz
 
 # Repack each archive with additional files listed above
-for i in `seq 1 ${#ARCHIVE_NAMES[@]}`; do
+for i in `seq 0 ${#ARCHIVE_NAMES[@]}`; do
     ARCHIVE_NAME=${ARCHIVE_NAMES[$i]}
     # Extract existing archive
     if [[ $ARCHIVE_NAME =~ ^.*gz$ ]]; then
@@ -64,6 +69,10 @@ mkdir -p ${TMP}/beacon-${VERSION}
 cp -ar * ${TMP}/beacon-${VERSION}
 tar -czv -f ${CWD}/dist/beacon-${VERSION}-source.tar.gz --exclude-vcs --exclude="beacon-${VERSION}/dist" --exclude="**/target" --exclude="**/bin" -C ${TMP} beacon-${VERSION}
 rm -rfd ${TMP}
-#cd ../../
-#cd beacon
+
+cd net.beaconcontroller.parent
+mvn javadoc:javadoc
+cd ..
+rm -rf dist/javadoc
+cp -ar net.beaconcontroller.parent/target/site/apidocs dist/javadoc
 
