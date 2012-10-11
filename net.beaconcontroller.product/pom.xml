@@ -47,8 +47,14 @@
           </formats>
           <products>
             <product>
-              <id>beacon.product.id</id>
+              <id>beacon-all</id>
               <rootFolder>beacon-${project.version}</rootFolder>
+              <attachId>all</attachId>
+            </product>
+            <product>
+              <id>beacon-learningswitch</id>
+              <rootFolder>beacon-${project.version}</rootFolder>
+              <attachId>learningswitch</attachId>
             </product>
           </products>
         </configuration>
