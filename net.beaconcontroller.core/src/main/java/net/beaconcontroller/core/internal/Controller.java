@@ -234,6 +234,7 @@ public class Controller implements IBeaconProvider, SelectListener {
             sw.getSocketChannel().socket().close();
         } catch (IOException e1) {
         }
+        this.initializerMap.remove(sw);
         log.info("Switch disconnected {}", sw);
     }
 
