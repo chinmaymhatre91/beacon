@@ -398,7 +398,7 @@ public class Controller implements IBeaconProvider, SelectListener {
                                     }
                                 }
                             } else {
-                                log.warn("Unhandled OF Message: {} from {}", m, sw);
+                                log.debug("Unhandled OF Message: {} from {}", m, sw);
                             }
                             break;
                     } // end switch(sw.getState())
