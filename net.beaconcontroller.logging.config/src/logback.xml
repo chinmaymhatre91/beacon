@@ -19,9 +19,11 @@
     </encoder>
   </appender>
 
-  <root level="info">
+  <root level="ERROR">
     <appender-ref ref="STDOUT" />
     <appender-ref ref="beacon.log" />
   </root>
-  <logger name="net.beaconcontroller" level="ERROR"/>
+  <logger name="net.beaconcontroller" level="INFO"/>
+  <logger name="net.beaconcontroller.core.internal.SpringFrameworkListener" level="ERROR"/>
+  <logger name="net.beaconcontroller.logging" level="ERROR"/>
 </configuration>
