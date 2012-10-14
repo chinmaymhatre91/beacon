@@ -134,13 +134,21 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-javadoc-plugin</artifactId>
-        <version>2.7</version>
+        <version>2.9</version>
         <configuration>
           <aggregate>true</aggregate>
+          <!-- Enable the below to link to external Javadocs
           <detectLinks>true</detectLinks>
           <links>
             <link>https://openflow.stanford.edu/static/openflowj/releases/${openflowj.version}/apidocs/</link>
           </links>
+           -->
+          <!-- switch on dependency-driven aggregation into Javadocs -->
+          <includeDependencySources>true</includeDependencySources>
+          <dependencySourceIncludes>
+            <!-- Include ONLY org.openflow artifacts -->
+            <dependencySourceInclude>org.openflow:*</dependencySourceInclude>
+          </dependencySourceIncludes>
         </configuration>
       </plugin>
     </plugins>
