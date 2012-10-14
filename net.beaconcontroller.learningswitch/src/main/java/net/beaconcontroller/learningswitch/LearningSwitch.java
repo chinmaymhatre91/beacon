@@ -109,8 +109,8 @@ public class LearningSwitch implements IOFMessageListener, IOFSwitchListener {
             sw.getOutputStream().write(fm);
         }
 
-        // If the destination is flood or the Packet In was not buffered
-        // then send a Packet Out.
+        // If the destination is unknown or the OFPacketIn was not buffered
+        // then send an OFPacketOut.
         if (outPort == -1 || bufferId == OFPacketOut.BUFFER_ID_NONE) {
             OFActionOutput action = new OFActionOutput(
                     (short) ((outPort == -1) ? OFPort.OFPP_FLOOD.getValue()
