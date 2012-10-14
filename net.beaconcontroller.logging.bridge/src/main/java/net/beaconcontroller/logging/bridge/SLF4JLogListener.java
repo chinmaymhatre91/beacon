@@ -18,11 +18,6 @@ public class SLF4JLogListener implements LogListener {
     private static Logger log = LoggerFactory.getLogger(SLF4JLogListener.class);
 
     public void logged(LogEntry entry) {
-        if (entry.getBundle() != null) {
-            log = LoggerFactory.getLogger(entry.getBundle().getSymbolicName()
-                    + "-" + entry.getBundle().getVersion().toString());
-        }
-
         switch (entry.getLevel()) {
             case LogService.LOG_DEBUG:
                 log.debug(entry.getMessage(), entry.getException());
