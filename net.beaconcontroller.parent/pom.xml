@@ -41,6 +41,7 @@
     <module>../net.beaconcontroller.topology</module>
     <module>../net.beaconcontroller.topology.tests</module>
     <module>../net.beaconcontroller.topology.web</module>
+    <module>../net.beaconcontroller.tutorial</module>
     <module>../net.beaconcontroller.util</module>
     <module>../net.beaconcontroller.web</module>
   </modules>

@@ -26,4 +26,5 @@
   <logger name="net.beaconcontroller" level="INFO"/>
   <logger name="net.beaconcontroller.core.internal.SpringFrameworkListener" level="ERROR"/>
   <logger name="net.beaconcontroller.logging" level="ERROR"/>
+  <logger name="net.beaconcontroller.tutorial" level="TRACE"/>
 </configuration>
