@@ -12,7 +12,7 @@ ADDITIONAL_FILES=("LICENSE.txt" "LICENSE_EXCEPTION.txt" "beacon.properties")
 ECLIPSE_FILES=("eclipse-rcp-indigo-linux-gtk-x86_64.tar.gz" "eclipse-rcp-indigo-linux-gtk.tar.gz" "eclipse-rcp-indigo-macosx-cocoa-x86_64.tar.gz" "eclipse-rcp-indigo-win32-x86_64.zip" "eclipse-rcp-indigo-win32.zip")
 TUTORIAL_ARCHIVE_NAMES=("beacon-tutorial-version-linux_x86_64.tar.gz" "beacon-tutorial-version-linux_x86.tar.gz" "beacon-tutorial-version-osx_x86_64.tar.gz" "beacon-tutorial-version-win_x86_64.zip" "beacon-tutorial-version-win_x86.zip")
 TUTORIAL_ARCHIVE="beacon-tutorial-version.tar.gz"
-LOCAL_TARGET_ARCHIVE="beacon-1.0.0-local-target.tar.gz"
+LOCAL_TARGET_ARCHIVE="beacon-local-target-version.tar.gz"
 
 getExt() {
     mkdir -p ext
@@ -109,8 +109,7 @@ mkdir ${TMP}/beacon-tutorial-${VERSION}/src
 tar xvzf ${CWD}/dist/beacon-${VERSION}-source.tar.gz -C ${TMP}/beacon-tutorial-${VERSION}/src
 tar xvzf ${OFJ}/dist/openflowj-${OFJ_VERSION}-source.tar.gz -C ${TMP}/beacon-tutorial-${VERSION}/src
 # extract the local target files here
-tar xzvf ${CWD}/ext/${LOCAL_TARGET_ARCHIVE} --strip=1 -C ${TMP}/beacon-tutorial-${VERSION}/src/beacon-${VERSION} beacon/libs
-tar xzvf ${CWD}/ext/${LOCAL_TARGET_ARCHIVE} --strip=1 -C ${TMP}/beacon-tutorial-${VERSION}/src/beacon-${VERSION} beacon/target-platform
+tar xzvf ${CWD}/ext/${LOCAL_TARGET_ARCHIVE//version/$VERSION} -C ${TMP}/beacon-tutorial-${VERSION}/src/beacon-${VERSION}
 # build the package without eclipse
 tar czvf ${CWD}/dist/${TUTORIAL_ARCHIVE//version/$VERSION} -C ${TMP} beacon-tutorial-${VERSION}
 # per eclipse version
