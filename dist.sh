@@ -9,14 +9,42 @@ ARCHIVE_LEARNINGSWITCH="beacon-learningswitch-linux.gtk.x86.tar.gz"
 NEW_ARCHIVE_DIR="dist/"
 NEW_ARCHIVE_NAMES=("beacon-version-linux_x86_64.tar.gz" "beacon-version-linux_x86.tar.gz" "beacon-version-osx_x86_64.tar.gz" "beacon-version-win_x86_64.zip" "beacon-version-win_x86.zip")
 ADDITIONAL_FILES=("LICENSE.txt" "LICENSE_EXCEPTION.txt" "beacon.properties")
+ECLIPSE_FILES=("eclipse-rcp-indigo-linux-gtk-x86_64.tar.gz" "eclipse-rcp-indigo-linux-gtk.tar.gz" "eclipse-rcp-indigo-macosx-cocoa-x86_64.tar.gz" "eclipse-rcp-indigo-win32-x86_64.zip" "eclipse-rcp-indigo-win32.zip")
+TUTORIAL_ARCHIVE_NAMES=("beacon-tutorial-version-linux_x86_64.tar.gz" "beacon-tutorial-version-linux_x86.tar.gz" "beacon-tutorial-version-osx_x86_64.tar.gz" "beacon-tutorial-version-win_x86_64.zip" "beacon-tutorial-version-win_x86.zip")
+TUTORIAL_ARCHIVE="beacon-tutorial-version.tar.gz"
+LOCAL_TARGET_ARCHIVE="beacon-1.0.0-local-target.tar.gz"
 
-if [ $# -ne 1 ]; then
-  echo "Usage: $0 <VERSION>"
-  echo "       $0 1.0.0"
+getExt() {
+    mkdir -p ext
+    cd ext
+    for ECLIPSE_FILE in "${ECLIPSE_FILES[@]}"; do
+        if [[ ! -e "${ECLIPSE_FILE}" ]]; then
+            wget http://mirrors.xmission.com/eclipse/technology/epp/downloads/release/indigo/R/${ECLIPSE_FILE}
+        fi
+    done
+    cd ..
+}
+
+if [[ $# -lt 1 || $# -gt 2 ]]; then
+  echo "Usage: $0 <VERSION> <OpenFlowJ directory>"
+  echo "       $0 1.0.0 ../openflowj"
   exit 65
 fi
 
 VERSION=$1
+if [[ "ext" == ${VERSION} ]]; then
+    getExt
+    exit 0
+fi
+
+OFJ=$2
+OFJ_VERSION=`grep -m 1 version ${OFJ}/pom.xml`
+if [[ $OFJ_VERSION =~ ^.*\<version\>([0-9.]*)\<\/version\>.*$ ]]; then
+    OFJ_VERSION=${BASH_REMATCH[1]}
+else
+    echo "Failure determining OFJ version"
+    exit 1
+fi
 
 cd net.beaconcontroller.parent
 mvn clean
@@ -24,10 +52,7 @@ mvn package
 cd ..
 
 # Delete any existing archives
-for ARCHIVE_NAME in "${NEW_ARCHIVE_NAMES[@]}"; do
-    rm -rf ${CWD}/${NEW_ARCHIVE_DIR}${ARCHIVE_NAME//version/$VERSION}
-done
-rm -rf ${CWD}/dist/beacon-${VERSION}-source.tar.gz
+rm -rf ${CWD}/dist/*
 
 # Repack each archive with additional files listed above
 for i in `seq 0 ${#ARCHIVE_NAMES[@]}`; do
@@ -67,12 +92,54 @@ for i in `seq 0 ${#ARCHIVE_NAMES[@]}`; do
 done
 mkdir -p ${TMP}/beacon-${VERSION}
 cp -ar * ${TMP}/beacon-${VERSION}
-tar -czv -f ${CWD}/dist/beacon-${VERSION}-source.tar.gz --exclude-vcs --exclude="beacon-${VERSION}/dist" --exclude="**/target" --exclude="**/bin" -C ${TMP} beacon-${VERSION}
-rm -rfd ${TMP}
+tar -czv -f ${CWD}/dist/beacon-${VERSION}-source.tar.gz --exclude-vcs --exclude="beacon-${VERSION}/dist" --exclude="beacon-${VERSION}/ext" --exclude="**/target" --exclude="**/bin" -C ${TMP} beacon-${VERSION}
+rm -rfd ${TMP}/*
+rm -rfd ${TMP}/.*
 
 cd net.beaconcontroller.parent
 mvn javadoc:javadoc
 cd ..
-rm -rf dist/javadoc
-cp -ar net.beaconcontroller.parent/target/site/apidocs dist/javadoc
+rm -rf dist/javadoc dist/apidocs
+cp -ar net.beaconcontroller.parent/target/site/apidocs dist/
+
+# Assemble the tutorial packages
+mkdir ${TMP}/beacon-tutorial-${VERSION}
+cp -ar ${CWD}/dist/apidocs ${TMP}/beacon-tutorial-${VERSION}
+mkdir ${TMP}/beacon-tutorial-${VERSION}/src
+tar xvzf ${CWD}/dist/beacon-${VERSION}-source.tar.gz -C ${TMP}/beacon-tutorial-${VERSION}/src
+tar xvzf ${OFJ}/dist/openflowj-${OFJ_VERSION}-source.tar.gz -C ${TMP}/beacon-tutorial-${VERSION}/src
+# extract the local target files here
+tar xzvf ${CWD}/ext/${LOCAL_TARGET_ARCHIVE} --strip=1 -C ${TMP}/beacon-tutorial-${VERSION}/src/beacon-${VERSION} beacon/libs
+tar xzvf ${CWD}/ext/${LOCAL_TARGET_ARCHIVE} --strip=1 -C ${TMP}/beacon-tutorial-${VERSION}/src/beacon-${VERSION} beacon/target-platform
+# build the package without eclipse
+tar czvf ${CWD}/dist/${TUTORIAL_ARCHIVE//version/$VERSION} -C ${TMP} beacon-tutorial-${VERSION}
+# per eclipse version
+
+# Repack each archive with additional files listed above
+for i in `seq 0 ${#ECLIPSE_FILES[@]}`; do
+    ECLIPSE_FILE=${ECLIPSE_FILES[$i]}
+    TUT_ARCHIVE=${TUTORIAL_ARCHIVE_NAMES[$i]}
+    rm -rf ${TMP}/beacon-tutorial-${VERSION}/eclipse
+
+    # Extract the eclipse archive
+    if [[ $ECLIPSE_FILE =~ ^.*gz$ ]]; then
+        tar xzvf ${CWD}/ext/${ECLIPSE_FILE} -C ${TMP}/beacon-tutorial-${VERSION}
+    fi
+    if [[ $ECLIPSE_FILE =~ ^.*zip$ ]]; then
+        unzip ${CWD}/ext/${ECLIPSE_FILE} -d ${TMP}/beacon-tutorial-${VERSION}
+    fi
+    
+    # Pack archive
+    if [[ $TUT_ARCHIVE =~ ^.*gz$ ]]; then
+        tar czvf ${CWD}/dist/${TUT_ARCHIVE//version/$VERSION} -C ${TMP} beacon-tutorial-${VERSION}
+    fi
+    if [[ $TUT_ARCHIVE =~ ^.*zip$ ]]; then
+        pushd .
+        cd ${TMP}
+        zip -r ${CWD}/dist/${TUT_ARCHIVE//version/$VERSION} *
+        popd
+    fi
+done
+
+rm -rf ${TMP}
 
