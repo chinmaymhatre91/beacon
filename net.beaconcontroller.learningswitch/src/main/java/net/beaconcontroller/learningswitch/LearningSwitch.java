@@ -38,13 +38,6 @@ public class LearningSwitch implements IOFMessageListener, IOFSwitchListener {
     protected Map<IOFSwitch, LongShortHopscotchHashMap> macTables =
         new HashMap<IOFSwitch, LongShortHopscotchHashMap>();
 
-    /**
-     * @param beaconProvider the beaconProvider to set
-     */
-    public void setBeaconProvider(IBeaconProvider beaconProvider) {
-        this.beaconProvider = beaconProvider;
-    }
-
     public void startUp() {
         log.trace("Starting");
         beaconProvider.addOFMessageListener(OFType.PACKET_IN, this);
@@ -55,10 +48,6 @@ public class LearningSwitch implements IOFMessageListener, IOFSwitchListener {
         log.trace("Stopping");
         beaconProvider.removeOFMessageListener(OFType.PACKET_IN, this);
         beaconProvider.removeOFSwitchListener(this);
-    }
-
-    public String getName() {
-        return "switch";
     }
 
     public Command receive(IOFSwitch sw, OFMessage msg) throws IOException {
@@ -131,6 +120,10 @@ public class LearningSwitch implements IOFMessageListener, IOFSwitchListener {
         return Command.CONTINUE;
     }
 
+    public String getName() {
+        return "switch";
+    }
+
     @Override
     public void addedSwitch(IOFSwitch sw) {
     }
@@ -146,5 +139,12 @@ public class LearningSwitch implements IOFMessageListener, IOFSwitchListener {
      */
     public Map<IOFSwitch, LongShortHopscotchHashMap> getMacTables() {
         return macTables;
+    }
+
+    /**
+     * @param beaconProvider the beaconProvider to set
+     */
+    public void setBeaconProvider(IBeaconProvider beaconProvider) {
+        this.beaconProvider = beaconProvider;
     }
 }
