@@ -189,6 +189,7 @@ public class ControllerTest extends BeaconTestCase {
         expect(sw.getSocketChannel()).andReturn(sc).atLeastOnce();
         expect(sc.socket()).andReturn(sock).atLeastOnce();
         expect(inputStream.getIOLoop()).andReturn(ioLoop).atLeastOnce();
+        sw.transitionToState(OFSwitchState.DISCONNECTED);
         key.cancel();
         ioLoop.removeStream(inputStream);
 
@@ -225,6 +226,7 @@ public class ControllerTest extends BeaconTestCase {
         expect(sw.getId()).andReturn(1L).atLeastOnce();
         expect(sc.socket()).andReturn(sock).atLeastOnce();
         expect(inputStream.getIOLoop()).andReturn(ioLoop).atLeastOnce();
+        sw.transitionToState(OFSwitchState.DISCONNECTED);
         key.cancel();
         ioLoop.removeStream(inputStream);
 
