@@ -92,7 +92,7 @@ for i in `seq 0 ${#ARCHIVE_NAMES[@]}`; do
 done
 mkdir -p ${TMP}/beacon-${VERSION}
 cp -ar * ${TMP}/beacon-${VERSION}
-tar -czv -f ${CWD}/dist/beacon-${VERSION}-source.tar.gz --exclude-vcs --exclude="beacon-${VERSION}/dist" --exclude="beacon-${VERSION}/ext" --exclude="**/target" --exclude="**/bin" -C ${TMP} beacon-${VERSION}
+tar -czv -f ${CWD}/dist/beacon-${VERSION}-source.tar.gz --exclude-vcs --exclude="beacon-${VERSION}/dist" --exclude="beacon-${VERSION}/ext" --exclude="**/target" --exclude="**/bin" --exclude="**/logs" -C ${TMP} beacon-${VERSION}
 rm -rfd ${TMP}/*
 rm -rfd ${TMP}/.*
 
