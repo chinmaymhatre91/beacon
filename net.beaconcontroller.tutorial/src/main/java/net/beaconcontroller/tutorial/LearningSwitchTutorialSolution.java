@@ -138,7 +138,7 @@ public class LearningSwitchTutorialSolution implements IOFMessageListener, IOFSw
                 po.setBufferId(OFPacketOut.BUFFER_ID_NONE);
                 po.setInPort(pi.getInPort());
                 po.setPacketData(pi.getPacketData());
-                sw.getOutputStream().write(fm);
+                sw.getOutputStream().write(po);
             }
         } else {
             // Destination port unknown, flood packet to all ports
