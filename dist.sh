@@ -60,6 +60,9 @@ mvn clean
 mvn install
 cd ..
 
+# Make dist if does not exit
+mkdir -p dist
+
 # Delete any existing archives
 rm -rf ${CWD}/dist/*
 
