@@ -110,7 +110,9 @@ public class LearningSwitchTutorial implements IOFMessageListener, IOFSwitchList
          * the pseudo code with actual Java code.
          *
          * First build the OFMatch object that will be used to match packets
-         * from this new flow. See the OFMatch and OFPacketIn class Javadocs
+         * from this new flow. See the OFMatch and OFPacketIn class Javadocs,
+         * which if you are using the tutorial archive, are in the apidocs
+         * folder where you extracted it.
          */
         // OFMatch match = ...
 
