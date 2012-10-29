@@ -5,13 +5,13 @@
     <parent>
         <groupId>net.beaconcontroller</groupId>
         <artifactId>beacon</artifactId>
-        <version>1.0.1-SNAPSHOT</version>
+        <version>1.0.2</version>
         <relativePath>../net.beaconcontroller.parent</relativePath>
     </parent>
     <groupId>net.beaconcontroller</groupId>
     <artifactId>target-platform</artifactId>
     <packaging>pom</packaging>
-    <version>1.0.1-SNAPSHOT</version>
+    <version>1.0.2</version>
     <build>
         <plugins>
             <plugin>
