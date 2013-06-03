@@ -33,6 +33,35 @@ public class Ethernet extends BasePacket {
     protected boolean pad = false;
 
     /**
+     *
+     */
+    public Ethernet() {
+        super();
+    }
+
+    /**
+     * Creates a new Ethernet instance and deserializes the data in the
+     * provided packet.
+     * @param packet the packet to deserialize
+     */
+    public Ethernet(byte[] packet) {
+        super();
+        deserialize(packet, 0, packet.length);
+    }
+
+    /**
+     * Creates a new Ethernet instance and deserializes the data in the
+     * provided packet.
+     * @param packet the packet to deserialize
+     * @param offset the offset within packet to begin deserialization
+     * @param length the length of the packet to deserialize
+     */
+    public Ethernet(byte[] packet, int offset, int length) {
+        super();
+        deserialize(packet, offset, length);
+    }
+
+    /**
      * @return the destinationMACAddress
      */
     public byte[] getDestinationMACAddress() {
@@ -51,6 +80,16 @@ public class Ethernet extends BasePacket {
      * @param destinationMACAddress the destinationMACAddress to set
      */
     public Ethernet setDestinationMACAddress(String destinationMACAddress) {
+        this.destinationMACAddress = Ethernet
+                .toMACAddress(destinationMACAddress);
+        return this;
+    }
+
+    /**
+     * @param destinationMACAddress the destinationMACAddress to set contained
+     *      in the lower 6 bytes of the long
+     */
+    public Ethernet setDestinationMACAddress(long destinationMACAddress) {
         this.destinationMACAddress = Ethernet
                 .toMACAddress(destinationMACAddress);
         return this;
@@ -185,6 +224,22 @@ public class Ethernet extends BasePacket {
     }
 
     /**
+     * Converts a MAC address contained in the lower 6 bytes of the supplied
+     * macAddress variable to a byte[]
+     * @param macAddress The MAC address, contained in the lower 6 bytes.
+     * @return the MAC address in a byte[]
+     */
+    public static byte[] toMACAddress(Long macAddress) {
+        byte[] addr = new byte[6];
+        long mac = macAddress;
+        for (int i = 5; i >= 0; --i) {
+            addr[i] = (byte)(mac & 0xff);
+            mac >>= 8;
+        }
+        return addr;
+    }
+
+    /**
      * Accepts a MAC address and returns the corresponding long, where the
      * MAC bytes are set on the lower order bytes of the long.
      * @param macAddress
@@ -247,5 +302,29 @@ public class Ethernet extends BasePacket {
         if (!Arrays.equals(sourceMACAddress, other.sourceMACAddress))
             return false;
         return true;
+    }
+
+    /**
+     * Convenience method to check if the payload of this header is IPv4
+     * @return true if the payload is IPv4, false otherwise
+     */
+    public boolean payloadIsIPv4() {
+        return this.etherType == TYPE_IPv4;
+    }
+
+    /**
+     * Convenience method to check if the payload of this header is ARP
+     * @return true if the payload is ARP, false otherwise
+     */
+    public boolean payloadIsARP() {
+        return this.etherType == TYPE_ARP;
+    }
+
+    /**
+     * Convenience method to check if the payload of this header is LLDP
+     * @return true if the payload is LLDP, false otherwise
+     */
+    public boolean payloadIsLLDP() {
+        return this.etherType == TYPE_LLDP;
     }
 }

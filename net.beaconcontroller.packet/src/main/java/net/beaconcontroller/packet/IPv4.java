@@ -484,6 +484,22 @@ public class IPv4 extends BasePacket {
         return result;
     }
 
+    /**
+     * Convenience method to check if the payload of this header is ICMP
+     * @return true if the payload is ICMP, false otherwise
+     */
+    public boolean payloadIsICMP() {
+        return this.protocol == PROTOCOL_ICMP;
+    }
+
+    /**
+     * Convenience method to check if the payload of this header is UDP
+     * @return true if the payload is UDP, false otherwise
+     */
+    public boolean payloadIsUDP() {
+        return this.protocol == PROTOCOL_UDP;
+    }
+
     /* (non-Javadoc)
      * @see java.lang.Object#hashCode()
      */
