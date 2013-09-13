@@ -122,6 +122,14 @@
               <arch>x86_64</arch>
             </environment>
           </environments>
+          <filters>
+            <!-- example 3: work around Equinox bug 348045 -->
+            <filter>
+               <type>p2-installable-unit</type>
+               <id>org.eclipse.equinox.servletbridge.extensionbundle</id>
+               <removeAll />
+            </filter>
+          </filters>
           <target>
             <artifact>
               <groupId>net.beaconcontroller</groupId>
