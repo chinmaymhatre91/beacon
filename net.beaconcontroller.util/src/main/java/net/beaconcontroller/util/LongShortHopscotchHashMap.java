@@ -1,3 +1,6 @@
+/**
+ * This file is licensed under the BSD license as described in the included LICENSE.txt.
+ */
 package net.beaconcontroller.util;
 
 import org.slf4j.Logger;

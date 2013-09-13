@@ -1,6 +1,6 @@
 /**
- * Copyright 2011, Stanford University. This file is licensed under GPL v2 plus
- * a special exception, as described in included LICENSE_EXCEPTION.txt.
+ * Copyright 2010-2013, Stanford University. This file is licensed under the
+ * BSD license as described in the included LICENSE.txt.
  */
 package net.beaconcontroller.learningswitch;
 
