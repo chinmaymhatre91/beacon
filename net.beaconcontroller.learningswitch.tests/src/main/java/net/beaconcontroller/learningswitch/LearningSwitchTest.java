@@ -4,13 +4,12 @@
  */
 package net.beaconcontroller.learningswitch;
 
-import static org.easymock.EasyMock.createMock;
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.replay;
-import static org.easymock.EasyMock.verify;
+import static org.easymock.EasyMock.*;
 import static org.junit.Assert.assertEquals;
 
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 import net.beaconcontroller.core.IOFMessageListener;
 import net.beaconcontroller.core.IOFSwitch;
@@ -75,9 +74,6 @@ public class LearningSwitchTest extends BeaconTestCase {
             .setPacketData(this.testPacketSerialized)
             .setReason(OFPacketInReason.NO_MATCH)
             .setTotalLength((short) this.testPacketSerialized.length);
-
-        // clear the MAC tables
-        getLearningSwitch().getMacTables().clear();
     }
 
     protected LearningSwitch getLearningSwitch() {
@@ -90,7 +86,6 @@ public class LearningSwitchTest extends BeaconTestCase {
 
     @Test
     public void testFlood() throws Exception {
-        LearningSwitch learningSwitch = getLearningSwitch();
         MockBeaconProvider mockBeaconProvider = getMockBeaconProvider();
 
         // build our expected flooded packetOut
@@ -103,7 +98,9 @@ public class LearningSwitchTest extends BeaconTestCase {
         // Mock up our expected behavior
         IOFSwitch mockSwitch = createMock(IOFSwitch.class);
         OFMessageSafeOutStream mockStream = createMock(OFMessageSafeOutStream.class);
+        Map<Object,Object> local = new HashMap<Object, Object>();
         expect(mockSwitch.getOutputStream()).andReturn(mockStream);
+        expect(mockSwitch.getLocal()).andReturn(local).anyTimes();
         mockStream.write(po);
 
         // Start recording the replay on the mocks
@@ -117,13 +114,12 @@ public class LearningSwitchTest extends BeaconTestCase {
         verify(mockSwitch, mockStream);
 
         // Verify the MAC table inside the switch
-        assertEquals(1, learningSwitch.getMacTables().get(mockSwitch).get(
+        assertEquals(1, ((LongShortHopscotchHashMap) mockSwitch.getLocal().get(LearningSwitch.class)).get(
                 Ethernet.toLong(Ethernet.toMACAddress("00:44:33:22:11:00"))));
     }
 
     @Test
     public void testFlowMod() throws Exception {
-        LearningSwitch learningSwitch = getLearningSwitch();
         MockBeaconProvider mockBeaconProvider = getMockBeaconProvider();
 
         // tweak the test packet in since we need a bufferId
@@ -141,18 +137,19 @@ public class LearningSwitchTest extends BeaconTestCase {
         IOFSwitch mockSwitch = createMock(IOFSwitch.class);
         OFMessageInStream mockInStream = createMock(OFMessageInStream.class);
         OFMessageSafeOutStream mockStream = createMock(OFMessageSafeOutStream.class);
+        Map<Object,Object> local = new HashMap<Object, Object>();
         expect(mockSwitch.getInputStream()).andReturn(mockInStream).anyTimes();
         expect(mockInStream.getMessageFactory()).andReturn(new BasicFactory()).anyTimes();
         expect(mockSwitch.getOutputStream()).andReturn(mockStream);
+        expect(mockSwitch.getLocal()).andReturn(local).anyTimes();
         mockStream.write(fm);
 
         // Start recording the replay on the mocks
         replay(mockSwitch, mockStream, mockInStream);
 
         // Populate the MAC table
-        learningSwitch.getMacTables().put(mockSwitch,
-                new LongShortHopscotchHashMap());
-        learningSwitch.getMacTables().get(mockSwitch).put(
+        mockSwitch.getLocal().put(LearningSwitch.class, new LongShortHopscotchHashMap());
+        ((LongShortHopscotchHashMap) mockSwitch.getLocal().get(LearningSwitch.class)).put(
                 Ethernet.toLong(Ethernet.toMACAddress("00:11:22:33:44:55")),
                 (short) 2);
 
@@ -165,7 +162,7 @@ public class LearningSwitchTest extends BeaconTestCase {
         verify(mockSwitch, mockStream, mockInStream);
 
         // Verify the MAC table inside the switch
-        assertEquals(1, learningSwitch.getMacTables().get(mockSwitch).get(
+        assertEquals(1, ((LongShortHopscotchHashMap) mockSwitch.getLocal().get(LearningSwitch.class)).get(
                 Ethernet.toLong(Ethernet.toMACAddress("00:44:33:22:11:00"))));
     }
 }

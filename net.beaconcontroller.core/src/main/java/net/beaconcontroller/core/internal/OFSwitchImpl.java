@@ -7,7 +7,9 @@ package net.beaconcontroller.core.internal;
 import java.io.IOException;
 import java.nio.channels.SocketChannel;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Future;
@@ -39,6 +41,7 @@ public class OFSwitchImpl implements IOFSwitchExt {
     protected OFDescriptionStatistics descriptionStatistics;
     protected OFFeaturesReply featuresReply;
     protected OFMessageInStream inStream;
+    protected Map<Object, Object> local;
     protected OFMessageSafeOutStream outStream;
     protected long lastReceivedMessageTime;
     protected SocketChannel socketChannel;
@@ -49,6 +52,7 @@ public class OFSwitchImpl implements IOFSwitchExt {
         this.attributes = new ConcurrentHashMap<Object, Object>();
         this.connectedSince = new Date();
         this.lastReceivedMessageTime = this.connectedSince.getTime();
+        this.local = new HashMap<Object, Object>();
         this.transactionIdSource = new AtomicInteger();
     }
 
@@ -175,5 +179,10 @@ public class OFSwitchImpl implements IOFSwitchExt {
     public void setDescriptionStatistics(
             OFDescriptionStatistics descriptionStatistics) {
         this.descriptionStatistics = descriptionStatistics;
+    }
+
+    @Override
+    public Map<Object, Object> getLocal() {
+        return local;
     }
 }

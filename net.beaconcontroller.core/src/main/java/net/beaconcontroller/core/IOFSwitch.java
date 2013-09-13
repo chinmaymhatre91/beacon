@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.nio.channels.SocketChannel;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Future;
 
@@ -68,6 +69,13 @@ public interface IOFSwitch {
      * @return
      */
     public ConcurrentMap<Object, Object> getAttributes();
+
+    /**
+     * Holds switch local attributes, similar to getAttributes, however
+     * there is no synchronization on this map.
+     * @return
+     */
+    public Map<Object, Object> getLocal();
 
     /**
      * Retrieves the date the switch connected to this controller

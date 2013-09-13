@@ -6,8 +6,6 @@ package net.beaconcontroller.learningswitch;
 
 import java.io.IOException;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 
 import net.beaconcontroller.core.IBeaconProvider;
 import net.beaconcontroller.core.IOFMessageListener;
@@ -35,8 +33,6 @@ import org.slf4j.LoggerFactory;
 public class LearningSwitch implements IOFMessageListener, IOFSwitchListener {
     protected static Logger log = LoggerFactory.getLogger(LearningSwitch.class);
     protected IBeaconProvider beaconProvider;
-    protected Map<IOFSwitch, LongShortHopscotchHashMap> macTables =
-        new HashMap<IOFSwitch, LongShortHopscotchHashMap>();
 
     public void startUp() {
         log.trace("Starting");
@@ -52,10 +48,10 @@ public class LearningSwitch implements IOFMessageListener, IOFSwitchListener {
 
     public Command receive(IOFSwitch sw, OFMessage msg) throws IOException {
         OFPacketIn pi = (OFPacketIn) msg;
-        LongShortHopscotchHashMap macTable = macTables.get(sw);
+        LongShortHopscotchHashMap macTable = (LongShortHopscotchHashMap) sw.getLocal().get(LearningSwitch.class);
         if (macTable == null) {
             macTable = new LongShortHopscotchHashMap();
-            macTables.put(sw, macTable);
+            sw.getLocal().put(LearningSwitch.class, macTable);
         }
 
         // Build the Match
@@ -130,15 +126,8 @@ public class LearningSwitch implements IOFMessageListener, IOFSwitchListener {
 
     @Override
     public void removedSwitch(IOFSwitch sw) {
-        if (macTables.remove(sw) != null)
+        if (sw.getAttributes().remove(LearningSwitch.class) != null)
             log.debug("Removed l2 table for {}", sw);
-    }
-
-    /**
-     * @return the macTables
-     */
-    public Map<IOFSwitch, LongShortHopscotchHashMap> getMacTables() {
-        return macTables;
     }
 
     /**
