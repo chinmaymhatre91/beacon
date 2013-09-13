@@ -9,7 +9,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -276,7 +275,7 @@ public class CoreWebManageable implements BundleContextAware, IWebManageable {
             fsr.setOutPort(OFPort.OFPP_NONE.getValue());
             fsr.setTableId((byte) 0xff);
             req.setStatisticType(OFStatisticsType.FLOW);
-            req.setStatistics(Collections.singletonList((OFStatistics)fsr));
+            req.setStatistics(fsr);
             req.setLengthU(req.getLengthU() + fsr.getLength());
             return req;
         };
@@ -385,7 +384,7 @@ public class CoreWebManageable implements BundleContextAware, IWebManageable {
                 OFPortStatisticsRequest psr = new OFPortStatisticsRequest();
                 psr.setPortNumber(OFPort.OFPP_NONE.getValue());
                 req.setStatisticType(OFStatisticsType.PORT);
-                req.setStatistics(Collections.singletonList((OFStatistics)psr));
+                req.setStatistics(psr);
                 req.setLengthU(req.getLengthU() + psr.getLength());
                 return req;
             }
