@@ -2,7 +2,7 @@ Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: Beacon Test Library
 Bundle-SymbolicName: net.beaconcontroller.test
-Bundle-Version: 1.0.2
+Bundle-Version: 1.0.4
 Bundle-RequiredExecutionEnvironment: JavaSE-1.6
 Import-Package: org.junit;version="[4.8.1,5.0.0)",
  org.openflow.protocol,

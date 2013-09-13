@@ -2,7 +2,7 @@ Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: net.beaconcontroller.hub.tests
 Bundle-SymbolicName: net.beaconcontroller.hub.tests
-Bundle-Version: 1.0.2
+Bundle-Version: 1.0.4
 Bundle-Vendor: net.beaconcontroller
 Fragment-Host: net.beaconcontroller.hub
 Bundle-RequiredExecutionEnvironment: JavaSE-1.6

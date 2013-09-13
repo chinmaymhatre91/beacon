@@ -2,7 +2,7 @@ Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: net.beaconcontroller.routing.tests
 Bundle-SymbolicName: net.beaconcontroller.routing.tests
-Bundle-Version: 1.0.2
+Bundle-Version: 1.0.4
 Bundle-Vendor: net.beaconcontroller
 Fragment-Host: net.beaconcontroller.routing
 Bundle-RequiredExecutionEnvironment: JavaSE-1.6

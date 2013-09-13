@@ -2,7 +2,7 @@ Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: net.beaconcontroller.core.web
 Bundle-SymbolicName: net.beaconcontroller.core.web
-Bundle-Version: 1.0.2
+Bundle-Version: 1.0.4
 Fragment-Host: net.beaconcontroller.web
 Bundle-RequiredExecutionEnvironment: JavaSE-1.6
 Import-Package: net.beaconcontroller.core.io,

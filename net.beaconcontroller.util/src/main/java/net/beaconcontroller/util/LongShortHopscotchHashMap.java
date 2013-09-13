@@ -283,7 +283,6 @@ public class LongShortHopscotchHashMap {
      * 
      * @author David Erickson
      * @author Viliam Holub
-     * @version 1.0.2
      * @param data
      * @param seed
      * @return
