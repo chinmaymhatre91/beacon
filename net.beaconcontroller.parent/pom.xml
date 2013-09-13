@@ -11,7 +11,7 @@
   <packaging>pom</packaging>
   <properties>
     <compiler.version>2.3.2</compiler.version>
-    <openflowj.version>1.0.2</openflowj.version>
+    <openflowj.version>1.0.3</openflowj.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <surefire.version>2.12</surefire.version>
     <tycho.version>0.15.0</tycho.version>
